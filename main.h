@@ -68,3 +68,15 @@ typedef struct gDisplay {
   unsigned int texGui;
   unsigned int texCrash;
 } gDisplay;
+
+typedef struct {
+float d;
+float posx;
+float posy;
+long lt; 
+} background_states;
+
+extern callbacks guiCallbacks;
+
+extern void switchCallbacks(callbacks *new);
+extern void setupDisplay(gDisplay *d);

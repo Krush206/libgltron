@@ -6,30 +6,54 @@
 #include "main.h"
 
 #define MENU_BUFSIZE 100
-#define FTX_ERR ""
-#define ERR_PREFIX ""
 #define SEPERATOR "/"
 #define BUFSIZE 8192
 
-char *getFullPath(char *);
-void initFonts(void);
-sgi_texture *load_sgi_texture(char *);
+static int initWindow(void);
+static void loadTexture(char *filename, int format);
+static void initTexture(gDisplay *d);
+static void ftxEstablishTexture(fonttex *ftx, unsigned char setupMipmaps);
+static void getLine(char *buf, int size, FILE *f);
+static sgi_texture* load_sgi_texture(char *filename);
+static void unload_sgi_texture(sgi_texture *tex);
+static void ftxUnloadFont(fonttex *ftx);
+static char* getFullPath(char *filename);
+static void initFonts(void);
+static fonttex *ftxLoadFont(char *filename);
+static int getElapsedTime(void);
+static void rasonly(gDisplay *d);
+static void restoreCallbacks(void);
+static void ftxRenderString(fonttex *ftx, char *string, int len);
+static void drawText(int x, int y, int size, char *text);
+static int* getVi(char* name);
+static void initMenuCaption(Menu *m);
+static void getNextLine(char *buf, int bufsize, FILE* f);
+static Menu* loadMenu(FILE* f, char* buf, Menu* parent, int level);
+static Menu** loadMenuFile(char *filename);
+static void drawMenu(gDisplay *d);
+static void guiProjection(int x, int y);
+static void displayGui(void);
+static void idleGui(void);
+static void menuAction(Menu *activated);
+static void keyboardGui(unsigned char key, int x, int y);
+static void  specialGui(int key, int x, int y);
+static void initGui(void);
+static void initGLGui(void);
 
-Menu *pCurrent, **pMenuList;
-fonttex *ftx;
+static Menu *pCurrent, **pMenuList;
+static fonttex *ftx;
 
-callbacks *last_callback;
-callbacks *current_callback;
+static callbacks *current_callback, *last_callback;
 
-int lasttime, polycount;
+static int lasttime, polycount;
 
-gDisplay screen;
+static gDisplay *screen;
 
-int initWindow() {
+static int initWindow(void) {
   int win_id;
   /* char buf[20]; */
 
-  glutInitWindowSize(800, 600);
+  glutInitWindowSize(screen->vp_w, screen->vp_h);
   glutInitWindowPosition(0, 0);
 
   glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
@@ -64,7 +88,7 @@ int initWindow() {
   return win_id;
 }
 
-void loadTexture(char *filename, int format) {
+static void loadTexture(char *filename, int format) {
   char *path;
   sgi_texture *tex;
 
@@ -82,7 +106,7 @@ void loadTexture(char *filename, int format) {
   free(tex);
 }
 
-void initTexture(gDisplay *d) {
+static void initTexture(gDisplay *d) {
   /* floor texture */
   glGenTextures(1, &(d->texFloor));
   glBindTexture(GL_TEXTURE_2D, d->texFloor);
@@ -121,7 +145,7 @@ void initTexture(gDisplay *d) {
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 }
 
-void ftxEstablishTexture(fonttex *ftx, unsigned char setupMipmaps) {
+static void ftxEstablishTexture(fonttex *ftx, unsigned char setupMipmaps) {
   /* TODO(1): add support for mipmaps */
   int i;
 
@@ -145,13 +169,13 @@ void ftxEstablishTexture(fonttex *ftx, unsigned char setupMipmaps) {
   }
 }
 
-void getLine(char *buf, int size, FILE *f) {
+static void getLine(char *buf, int size, FILE *f) {
   do {
     fgets(buf, size, f);
   } while( buf[0] == '\n' || buf[0] == '#');
 }
 
-sgi_texture* load_sgi_texture(char *filename) {
+static sgi_texture* load_sgi_texture(char *filename) {
   FILE *f;
   unsigned char buf[BUFSIZE];
   unsigned int x, y, bpc, zsize;
@@ -162,31 +186,31 @@ sgi_texture* load_sgi_texture(char *filename) {
   
   f = fopen(filename, "r");
   if(f == 0) {
-    perror(ERR_PREFIX "loading file");
+    perror("loading file");
     return 0;
   }
   
   fread(buf, 512, 1, f);
   if((buf[0] << 8) + (buf[1] << 0) != 474) {
-    fprintf(stderr, ERR_PREFIX "wrong magic: %d %d\n",
+    fprintf(stderr, "wrong magic: %d %d\n",
 	    buf[0], buf[1]);
     return 0;
   }
   
   if(buf[2] != 0) {
-    fprintf(stderr, ERR_PREFIX "RLE compression not supported\n");
+    fprintf(stderr, "RLE compression not supported\n");
     return 0;
   }
 
   if(buf[3] != 1) {
-    fprintf(stderr, ERR_PREFIX "BPC is %d - not supported\n", buf[3]);
+    fprintf(stderr, "BPC is %d - not supported\n", buf[3]);
     return 0;
   }
 
   bpc = buf[3];  
 
   if((buf[10] << 8) + buf[11] != 4) {
-    fprintf(stderr, ERR_PREFIX "number of channels is != 4 - not supported\n");
+    fprintf(stderr, "number of channels is != 4 - not supported\n");
     return 0;
   }
 
@@ -202,7 +226,7 @@ sgi_texture* load_sgi_texture(char *filename) {
   tex->channels = zsize;
 
   count = x * y * zsize * bpc;
-  /* fprintf(stderr, ERR_PREFIX "loading %ld bytes\n", count); */
+  /* fprintf(stderr, "loading %ld bytes\n", count); */
   tmp = (unsigned char*) malloc(count);
   bytes = fread(tmp, count, 1, f);
   /* now, data is in the wrong order: fix that */
@@ -216,12 +240,12 @@ sgi_texture* load_sgi_texture(char *filename) {
   return tex;
 }
 
-void unload_sgi_texture(sgi_texture *tex) {
+static void unload_sgi_texture(sgi_texture *tex) {
   free(tex->data);
   free(tex);
 }
 
-fonttex *ftxLoadFont(char *filename) {
+static fonttex *ftxLoadFont(char *filename) {
   char *path;
   FILE *file;
   char buf[100];
@@ -232,7 +256,7 @@ fonttex *ftxLoadFont(char *filename) {
 
   path = getFullPath(filename);
   if(path == 0) {
-    fprintf(stderr, FTX_ERR "can't load font file '%s'\n", filename);
+    fprintf(stderr, "can't load font file '%s'\n", filename);
     return 0;
   }
   
@@ -266,7 +290,7 @@ fonttex *ftxLoadFont(char *filename) {
       free(ftx->textures);
       free(ftx->fontname);
       free(ftx);
-      fprintf(stderr, FTX_ERR "can't load texture file '%s'\n", texname);
+      fprintf(stderr, "can't load texture file '%s'\n", texname);
       return 0;
     }
     *(ftx->textures + i) = load_sgi_texture(path);
@@ -275,7 +299,7 @@ fonttex *ftxLoadFont(char *filename) {
   return ftx;
 }
 
-void ftxUnloadFont(fonttex *ftx) {
+static void ftxUnloadFont(fonttex *ftx) {
   int i;
   for(i = 0; i < ftx->nTextures; i++)
     unload_sgi_texture(*(ftx->textures + i));
@@ -285,7 +309,7 @@ void ftxUnloadFont(fonttex *ftx) {
   free(ftx);
 }
 
-char* getFullPath(char *filename) {
+static char* getFullPath(char *filename) {
   char *path;
   FILE *fp = NULL;
   char *base;
@@ -357,7 +381,7 @@ char* getFullPath(char *filename) {
   return 0;
 }
 
-void initFonts() {
+static void initFonts() {
   char *path;
 
   if(ftx != NULL) ftxUnloadFont(ftx);
@@ -380,6 +404,7 @@ void initFonts() {
 }
 
 void setupDisplay(gDisplay *d) {
+  screen = d;
   printf("trying to create window\n");
   d->win_id = initWindow();
   printf("window created\n");
@@ -387,10 +412,10 @@ void setupDisplay(gDisplay *d) {
   printf("loading fonts...\n");
   initFonts();
   printf("loading textures...\n");
-  initTexture(&screen);
+  initTexture(d);
 }
 
-int getElapsedTime(void)
+static int getElapsedTime(void)
 {
 #ifdef WIN32
 	return timeGetTime();
@@ -399,7 +424,7 @@ int getElapsedTime(void)
 #endif
 }
 
-void rasonly(gDisplay *d) {
+static void rasonly(gDisplay *d) {
   /* do rasterising only (in local display d) */
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
@@ -426,7 +451,7 @@ void switchCallbacks(callbacks *new) {
   /* printf("callback init's completed\n"); */
 }
 
-void restoreCallbacks() {
+static void restoreCallbacks() {
   if(last_callback == 0) {
     fprintf(stderr, "no last callback present, exiting\n");
     exit(1);
@@ -443,7 +468,7 @@ void restoreCallbacks() {
   fprintf(stderr, "restoring callbacks\n");
 }
 
-void ftxRenderString(fonttex *ftx, char *string, int len) {
+static void ftxRenderString(fonttex *ftx, char *string, int len) {
   int i;
   int bound = -1;
   int index;
@@ -474,7 +499,7 @@ w);
     cx = (float)(index % w) / (float)w;
     cy = (float)(index / w) / (float)w;
     /* draw quad */
-    /* fprintf(stderr, FTX_ERR "coords: tex %d (%.2f, %.2f), %.2f\n", */
+    /* fprintf(stderr, "coords: tex %d (%.2f, %.2f), %.2f\n", */
     /*     bound, cx, cy, cw); */
 
     glBegin(GL_QUADS);
@@ -491,7 +516,7 @@ w);
   /* checkGLError("fonttex.c ftxRenderString\n"); */
 }
 
-void drawText(int x, int y, int size, char *text) {
+static void drawText(int x, int y, int size, char *text) {
   /* int i; */
 
   glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
@@ -515,11 +540,11 @@ void drawText(int x, int y, int size, char *text) {
   polycount += strlen(text);
 }
 
-int* getVi(char* name) {
+static int* getVi(char* name) {
   return 0;
 }
 
-void initMenuCaption(Menu *m) {
+static void initMenuCaption(Menu *m) {
   int *piValue;
 
   /* TODO support all kinds of types */
@@ -548,13 +573,13 @@ void initMenuCaption(Menu *m) {
   }
 }
 
-void getNextLine(char *buf, int bufsize, FILE* f) {
+static void getNextLine(char *buf, int bufsize, FILE* f) {
   fgets(buf, bufsize, f);
   while((buf[0] == '\n' || buf[0] == '#') && /* ignore empty lines, comments */
 	fgets(buf, bufsize, f));
 }
 
-Menu* loadMenu(FILE* f, char* buf, Menu* parent, int level) {
+static Menu* loadMenu(FILE* f, char* buf, Menu* parent, int level) {
   Menu* m;
   int i;
 
@@ -604,7 +629,7 @@ Menu* loadMenu(FILE* f, char* buf, Menu* parent, int level) {
   return m;
 }
 
-Menu** loadMenuFile(char *filename) {
+static Menu** loadMenuFile(char *filename) {
   char buf[MENU_BUFSIZE];
   FILE* f;
   Menu* m;
@@ -685,7 +710,7 @@ Menu** loadMenuFile(char *filename) {
   return list;
 }
 
-void drawMenu(gDisplay *d) {
+static void drawMenu(gDisplay *d) {
   /* draw Menu pCurrent */
   int i;
   int x, y, size, lineheight;
@@ -710,18 +735,11 @@ void drawMenu(gDisplay *d) {
   }
 }
 
-sgi_texture *tex;
+static sgi_texture *tex;
 
-typedef struct {
-float d;
-float posx;
-float posy;
-long lt; 
-} background_states;
+static background_states bgs;
 
-background_states bgs;
-
-void guiProjection(int x, int y) {
+static void guiProjection(int x, int y) {
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
   /*glOrtho(0, 0, x, y, -1, 1); */
@@ -731,7 +749,7 @@ void guiProjection(int x, int y) {
 }
 
 #define GUI_BLUE 0.3
-void displayGui() {
+static void displayGui() {
   float x, y, w, h;
   float y1, y2;
   float a, b1, b2, c1, c2;
@@ -741,7 +759,7 @@ void displayGui() {
   glClearColor(0.0, 0.0, 1.0, 0.0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  guiProjection(screen.vp_w, screen.vp_h);
+  guiProjection(screen->vp_w, screen->vp_h);
 
   glBegin(GL_QUADS);
   c1 = 0.25; c2 = 0.75;
@@ -788,7 +806,7 @@ void displayGui() {
   h = w/4;
 
   glEnable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, screen.texGui);
+  glBindTexture(GL_TEXTURE_2D, screen->texGui);
   glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
   alpha = (sin(bgs.d - M_PI / 2) + 1) / 2;
@@ -806,12 +824,12 @@ void displayGui() {
   glDisable(GL_TEXTURE_2D);
 
   glColor3f(1.0, 0.0, 1.0);
-  drawMenu(&screen);
+  drawMenu(screen);
 
   glutSwapBuffers();
 }
 
-void idleGui() {
+static void idleGui() {
   float delta;
   long now;
 
@@ -835,7 +853,7 @@ void idleGui() {
   glutPostRedisplay();
 }
 
-void menuAction(Menu *activated)
+static void menuAction(Menu *activated)
 {
   if(activated->nEntries > 0) {
     pCurrent = activated;
@@ -843,7 +861,7 @@ void menuAction(Menu *activated)
   }
 }
 
-void keyboardGui(unsigned char key, int x, int y) {
+static void keyboardGui(unsigned char key, int x, int y) {
   int i;
   switch(key) {
   case 27:
@@ -867,7 +885,7 @@ void keyboardGui(unsigned char key, int x, int y) {
   }
 }
 
-void  specialGui(int key, int x, int y) {
+static void  specialGui(int key, int x, int y) {
   switch(key) {
   case GLUT_KEY_DOWN:
     pCurrent->iHighlight = (pCurrent->iHighlight + 1) % pCurrent->nEntries;
@@ -880,7 +898,7 @@ void  specialGui(int key, int x, int y) {
   }
 }
 
-void initGui() {
+static void initGui() {
   /* init states */
   bgs.d = 0;
   bgs.posx = -1;
@@ -894,7 +912,7 @@ void initGui() {
   /* rasonly(screen); */
 }
 
-void initGLGui() {
+static void initGLGui() {
   glShadeModel(GL_SMOOTH);
 
   glEnable(GL_BLEND);
@@ -903,18 +921,6 @@ void initGLGui() {
   glDisable(GL_LIGHTING);
   glDisable(GL_DEPTH_TEST);
 
-}
-
-int main(int argc, char *argv[])
-{
-	extern callbacks guiCallbacks;
-
-	screen.vp_h = 600;
-	screen.vp_w = 800;
-	glutInit(&argc, argv);
-	setupDisplay(&screen);
-	switchCallbacks(&guiCallbacks);
-	glutMainLoop();
 }
 
 callbacks guiCallbacks = {
