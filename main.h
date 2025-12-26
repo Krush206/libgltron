@@ -1,3 +1,5 @@
+#define strbuf_init { NULL, 0, 0 }
+
 typedef struct callbacks {
   void (*display)(void);
   void (*idle)(void);
@@ -76,7 +78,55 @@ float posy;
 long lt; 
 } background_states;
 
+typedef struct settings_int {
+  char name[32];
+  int *value;
+} settings_int;
+
+typedef struct settings_float {
+  char name[32];
+  float *value;
+} settings_float;
+
+struct strbuf {
+    char *s;
+    size_t len;                 /* Valid characters */
+    size_t size;                /* Allocated characters */
+};
+
+struct config {
+    struct strbuf *entry;
+    struct config *next,
+		  *prev;
+};
+
+struct configfn {
+    void (*fn)(void);
+    char *name;
+};
+
 extern callbacks guiCallbacks;
 
+extern void loadSettings(char *);
 extern void switchCallbacks(callbacks *new);
 extern void setupDisplay(gDisplay *d);
+extern struct strbuf	 *strbuf_alloc(void);
+extern void strbuf_terminate(struct strbuf *);
+extern void strbuf_append1(struct strbuf *, char);
+extern void strbuf_appendn(struct strbuf *, const char *, size_t);
+extern void strbuf_append (struct strbuf *, const char *);
+extern char *strbuf_finish (struct strbuf *);
+extern void strbuf_cleanup(void *);
+extern void strbuf_free(void *);
+extern void doChangeHair(void);
+extern void doChangeSkin(void);
+extern void doEnd(void);
+extern void doChangeHairstyle(void);
+extern void doChangeSecWeapon(void);
+extern void doChangeHeadstyle(void);
+extern void doChangeChainstyle(void);
+extern void doChangeJet(void);
+extern void doChangePants(void);
+extern void doChangeShirt(void);
+extern void doChangeName(void);
+extern struct strbuf *quotetok(char **);

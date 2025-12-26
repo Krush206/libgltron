@@ -27,7 +27,6 @@ static void ftxRenderString(fonttex *ftx, char *string, int len);
 static void drawText(int x, int y, int size, char *text);
 static int* getVi(char* name);
 static void initMenuCaption(Menu *m);
-static void getNextLine(char *buf, int bufsize, FILE* f);
 static Menu* loadMenu(FILE* f, char* buf, Menu* parent, int level);
 static Menu** loadMenuFile(char *filename);
 static void drawMenu(gDisplay *d);
@@ -48,6 +47,21 @@ static callbacks *current_callback, *last_callback;
 static int lasttime, polycount;
 
 static gDisplay *screen;
+
+static struct config cfg = { NULL, &cfg, &cfg };
+static struct config *cfgp = &cfg;
+
+static struct configfn cfgfn[] = { { doChangeName, "cl_player_name", },
+				   { doChangeHair, "cl_player_hair", },
+				   { doChangeSkin, "cl_player_skin", },
+				   { doChangeShirt, "cl_player_shirt", },
+				   { doChangePants, "cl_player_pants", },
+				   { doChangeJet, "cl_player_jet", },
+				   { doChangeHairstyle, "cl_player_hairstyle", },
+				   { doChangeHeadstyle, "cl_player_headstyle", },
+				   { doChangeChainstyle, "cl_player_chainstyle", },
+				   { doChangeSecWeapon, "cl_player_secwep", },
+				   { doEnd, "" } };
 
 static int initWindow(void) {
   int win_id;
@@ -80,7 +94,7 @@ static int initWindow(void) {
 
   } else
   */
-    win_id = glutCreateWindow("gltron");
+    win_id = glutCreateWindow("OpenSoldat");
   if (win_id < 0) {
     printf("could not create window...exiting\n");
     exit(1);
@@ -107,42 +121,13 @@ static void loadTexture(char *filename, int format) {
 }
 
 static void initTexture(gDisplay *d) {
-  /* floor texture */
-  glGenTextures(1, &(d->texFloor));
-  glBindTexture(GL_TEXTURE_2D, d->texFloor);
-  loadTexture("gltron_floor.sgi", GL_RGB16);
-  glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
   /* menu icon */
   glGenTextures(1, &(d->texGui));
   glBindTexture(GL_TEXTURE_2D, d->texGui);
-  loadTexture("gltron.sgi", GL_RGBA);
+  loadTexture("soldat.sgi", GL_RGBA);
   glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-  /* wall texture */
-  glGenTextures(1, &(d->texWall));
-  glBindTexture(GL_TEXTURE_2D, d->texWall);
-  loadTexture("gltron_wall.sgi", GL_RGBA);
-  glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-  /* crash texture */
-  glGenTextures(1, &(d->texCrash));
-  glBindTexture(GL_TEXTURE_2D, d->texCrash);
-  loadTexture("gltron_crash.sgi", GL_RGBA);
-  glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 }
 
 static void ftxEstablishTexture(fonttex *ftx, unsigned char setupMipmaps) {
@@ -312,17 +297,7 @@ static void ftxUnloadFont(fonttex *ftx) {
 static char* getFullPath(char *filename) {
   char *path;
   FILE *fp = NULL;
-  char *base;
-
-  char *share1 = "/usr/share/games/gltron";
-  char *share2 = "/usr/local/share/games/gltron";
-
-  /* check a few directories for the files and */
-  /* return the full path. */
   
-  /* check: current directory, GLTRON_HOME, and, for UNIX only: */
-  /* /usr/share/games/gltron and /usr/local/share/games/gltron */
-
   path = malloc(strlen(filename) + 1);
   sprintf(path, "%s", filename);
 
@@ -336,52 +311,10 @@ static char* getFullPath(char *filename) {
   free(path);
   printf("unsuccessful\n");
 
-  base = getenv("GLTRON_HOME");
-  if(base != 0) {
-    path = malloc(strlen(base) + 1 + strlen(filename) + 1);
-    sprintf(path, "%s%c%s", base, SEPERATOR, filename);
-
-    printf("checking '%s'...", path);
-    fp = fopen(path, "r");
-    if(fp != 0) {
-      fclose(fp);
-	  printf("ok\n");
-      return path;
-    }
-    free(path);
-    printf("unsuccessful\n");
-  }
-
-  path = malloc(strlen(share1) + 1 + strlen(filename) + 1);
-  sprintf(path, "%s%c%s", share1, SEPERATOR, filename);
-
-  printf("checking '%s'", path);
-  fp = fopen(path, "r");
-  if(fp != 0) {
-	printf("ok\n");
-    fclose(fp);
-    return path;
-  }
-  free(path);
-  printf("unsuccessful\n");
-
-  path = malloc(strlen(share2) + 1 + strlen(filename) + 1);
-  sprintf(path, "%s%c%s", share2, SEPERATOR, filename);
-  
-  printf("checking '%s'", path);
-  fp = fopen(path, "r");
-  if(fp != 0) {
-    fclose(fp);
-	printf("ok\n");
-    return path;
-  }  
-  free(path);
-  printf("unsuccessful\n");
-
   return 0;
 }
 
-static void initFonts() {
+static void initFonts(void) {
   char *path;
 
   if(ftx != NULL) ftxUnloadFont(ftx);
@@ -451,7 +384,7 @@ void switchCallbacks(callbacks *new) {
   /* printf("callback init's completed\n"); */
 }
 
-static void restoreCallbacks() {
+static void restoreCallbacks(void) {
   if(last_callback == 0) {
     fprintf(stderr, "no last callback present, exiting\n");
     exit(1);
@@ -573,12 +506,6 @@ static void initMenuCaption(Menu *m) {
   }
 }
 
-static void getNextLine(char *buf, int bufsize, FILE* f) {
-  fgets(buf, bufsize, f);
-  while((buf[0] == '\n' || buf[0] == '#') && /* ignore empty lines, comments */
-	fgets(buf, bufsize, f));
-}
-
 static Menu* loadMenu(FILE* f, char* buf, Menu* parent, int level) {
   Menu* m;
   int i;
@@ -591,17 +518,17 @@ static Menu* loadMenu(FILE* f, char* buf, Menu* parent, int level) {
 
   m = (Menu*) malloc(sizeof(Menu));
   m->parent = parent;
-  getNextLine(buf, MENU_BUFSIZE, f);
+  getLine(buf, MENU_BUFSIZE, f);
   sscanf(buf, "%d ", &(m->nEntries));
 
-  getNextLine(buf, MENU_BUFSIZE, f);
+  getLine(buf, MENU_BUFSIZE, f);
   buf[31] = 0; /* enforce menu name limit; */
   sprintf(m->szName, "%s", buf);
   if(*(m->szName + strlen(m->szName) - 1) == '\n')
     *(m->szName + strlen(m->szName) - 1) = 0;
   
 
-  getNextLine(buf, MENU_BUFSIZE, f);
+  getLine(buf, MENU_BUFSIZE, f);
   buf[31] = 0; /* enforce menu caption limit; */
   sprintf(m->szCapFormat, "%s", buf);
   /* remove newline */
@@ -644,7 +571,7 @@ static Menu** loadMenuFile(char *filename) {
   if((f = fopen(filename, "r")) == NULL)
     return 0;
   /* read count of Menus */
-  getNextLine(buf, MENU_BUFSIZE, f);
+  getLine(buf, MENU_BUFSIZE, f);
   sscanf(buf, "%d ", &nMenus);
   if(nMenus <= 0) return 0;
 
@@ -749,7 +676,7 @@ static void guiProjection(int x, int y) {
 }
 
 #define GUI_BLUE 0.3
-static void displayGui() {
+static void displayGui(void) {
   float x, y, w, h;
   float y1, y2;
   float a, b1, b2, c1, c2;
@@ -762,48 +689,20 @@ static void displayGui() {
   guiProjection(screen->vp_w, screen->vp_h);
 
   glBegin(GL_QUADS);
-  c1 = 0.25; c2 = 0.75;
-  glColor3f(c1, c1, GUI_BLUE * c1);
+  c1 = 0.25; c2 = 0.25;
+  glColor3f(c1, c1, GUI_BLUE);
   glVertex2f(-1, -1);
-  glColor3f(c2, c2, GUI_BLUE * c2);
+  glColor3f(c2, c2, GUI_BLUE);
   glVertex2f(1, -1);
   glVertex2f(1, 1);
-  glColor3f(c1, c1, GUI_BLUE * c1);
+  glColor3f(c1, c1, GUI_BLUE);
   glVertex2f(-1, 1);
   glEnd();
 
-  for(y1 = -1; y1 < 1; y1 += 2 / N) {
-    y2 = y1 + 2 / N;
-    for(x = -1; x < 1; x += 2 / N) {
-      c1 = (x + 1) / 2;
-      c2 = (x + 2 / N + 1) / 2;
-
-      c1 = c1 / 2 + 0.25;
-      c2 = c2 / 2 + 0.25;
-      /* printf("using color %.2f\n", c); */
-      
-      glBegin(GL_QUADS);
-      a = x + sin(bgs.d) / 10;
-      /* b = x + cos(d) / 10 + 2 / N; */
-      b1 = x + 2 / N;
-      b2 = b1 + cos(bgs.d) / 10;
-      /* printf("corners: (%.2f %.2f) (%.2f %.2f)\n", a, 0.0, b,
-	 (float)yres[current]); */
-      glColor3f(c1, c1, GUI_BLUE * c1);
-      glVertex2f(a, y1);
-      glColor3f(c2, c2, GUI_BLUE * c2);
-      glVertex2f(b1, y1);
-      glVertex2f(b2, y2);
-      glColor3f(c1, c1, GUI_BLUE * c1);
-      glVertex2f(a, y2);
-      glEnd();
-    }
-  }
-
   x = bgs.posx;
   y = bgs.posy;
-  w = 1;
-  h = w/4;
+  w = 0.40;
+  h = 0.50;
 
   glEnable(GL_TEXTURE_2D);
   glBindTexture(GL_TEXTURE_2D, screen->texGui);
@@ -829,7 +728,7 @@ static void displayGui() {
   glutSwapBuffers();
 }
 
-static void idleGui() {
+static void idleGui(void) {
   float delta;
   long now;
 
@@ -858,7 +757,50 @@ static void menuAction(Menu *activated)
   if(activated->nEntries > 0) {
     pCurrent = activated;
     pCurrent->iHighlight = 0;
+  } else {
+    char *param;
+    struct strbuf *name, *val;
+    struct configfn *cfgfnp;
+    
+    param = strstr(cfg.entry->s, activated->szName);
+    name = quotetok(&param);
+    val = quotetok(&param);
+    cfgfnp = cfgfn;
+
+    printf("%s\n", name->s);
+    printf("%s\n", val->s);
+    while(cfgfnp->fn != doEnd) {
+      if(strstr(name->s, cfgfnp->name) != NULL)
+        break;
+      cfgfnp++;
+    }
   }
+}
+
+void loadSettings(char *file)
+{
+  struct strbuf *word;
+  char *path, c;
+  FILE *f;
+
+  path = getFullPath(file);
+  word = strbuf_alloc();
+  f = fopen(path, "r");
+  do {
+    fread(&c, (size_t) 1, (size_t) 1, f);
+    if(ferror(f)) {
+      fprintf(stderr, "error loading config");
+      exit(1);
+    }
+    strbuf_append1(word, c);
+  } while(!feof(f));
+  cfgp->entry = word;
+  cfgp->next = malloc(sizeof cfg);
+  cfgp->next->prev = cfgp;
+  cfgp = cfgp->next;
+  cfgp->entry = NULL;
+  cfgp->next = &cfg;
+  cfg.prev = cfgp;
 }
 
 static void keyboardGui(unsigned char key, int x, int y) {
@@ -898,7 +840,7 @@ static void  specialGui(int key, int x, int y) {
   }
 }
 
-static void initGui() {
+static void initGui(void) {
   /* init states */
   bgs.d = 0;
   bgs.posx = -1;
@@ -912,7 +854,7 @@ static void initGui() {
   /* rasonly(screen); */
 }
 
-static void initGLGui() {
+static void initGLGui(void) {
   glShadeModel(GL_SMOOTH);
 
   glEnable(GL_BLEND);
