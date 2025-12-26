@@ -102,7 +102,8 @@ struct config {
 
 struct configfn {
     void (*fn)(void);
-    char *name;
+    char *name,
+	 *val;
 };
 
 extern callbacks guiCallbacks;
@@ -129,4 +130,28 @@ extern void doChangeJet(void);
 extern void doChangePants(void);
 extern void doChangeShirt(void);
 extern void doChangeName(void);
-extern struct strbuf *quotetok(char **);
+extern char *quotetok(char *);
+extern void entrytok(char *, struct configfn *);
+extern void parseSettings(void);
+extern void doFullscreen(void);
+extern void doRenderWidth(void);
+extern void doRenderHeight(void);
+extern void doScreenWidth(void);
+extern void doScreenHeight(void);
+extern void doFPSLimit(void);
+extern void doMaxFPS(void);
+extern void doRenderBackground(void);
+extern void doForceBackground(void);
+extern void doBackgroundColorOne(void);
+extern void doBackgroundColorTwo(void);
+extern void doWeatherEffects(void);
+extern void doSmoothEdges(void);
+extern void doScaleInterface(void);
+extern void doPlayerIndicator(void);
+extern void doKillConsole(void);
+extern void doSwapEffect(void);
+extern void doDithering(void);
+extern void loadSound(char *);
+extern void setAttribute(ALenum attr);
+extern void playSound(void);
+extern void setupSound(int *, char **);

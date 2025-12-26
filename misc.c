@@ -1,37 +1,38 @@
+#include <AL/alut.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
 #include "main.h"
 
-struct strbuf *quotetok(char **str)
+void entrytok(char *entry, struct configfn *cfgfnp)
+{
+  entry += strlen(cfgfnp->name);
+  cfgfnp->val = quotetok(entry);
+}
+
+char *quotetok(char *str)
 {
   int i;
-  struct strbuf *ret;
+  struct strbuf ret = strbuf_init;
 
-  ret = strbuf_alloc();
   i = 0;
-  while(i < 2)
-    if(*(*str)++ == '"') {
-      while(**str != '\0') {
-        if((*str)[0] == '"') {
-          if((*str)[1] == '"') {
-            strbuf_append(ret, "\"\"");
-	    (*str) += 2;
+  while(*str != '\0')
+    if(*str++ == '"') {
+      while(*str != '\0') {
+        if(str[0] == '"') {
+          if(str[1] == '"') {
+            strbuf_appendn(&ret, str, (size_t) 2);
+	    str += 2;
 	    continue;
 	  }
 	  break;
 	}
-	strbuf_append1(ret, *(*str)++);
+	strbuf_append1(&ret, *str++);
       }
-      i++;
+      break;
     }
-  if(ret.len == 0) {
-    strbuf_free(ret);
-    return NULL;
-  }
-  strbuf_terminate(ret);
-  return ret;
+  return strbuf_finish(&ret);
 }
 
 #define DO_STRBUF(STRBUF, CHAR, STRLEN)				\

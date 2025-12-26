@@ -1,3 +1,4 @@
+#include <AL/alut.h>
 #include <GL/glut.h>
 #include <stdio.h>
 #include <string.h>
@@ -51,16 +52,34 @@ static gDisplay *screen;
 static struct config cfg = { NULL, &cfg, &cfg };
 static struct config *cfgp = &cfg;
 
-static struct configfn cfgfn[] = { { doChangeName, "cl_player_name", },
-				   { doChangeHair, "cl_player_hair", },
-				   { doChangeSkin, "cl_player_skin", },
-				   { doChangeShirt, "cl_player_shirt", },
-				   { doChangePants, "cl_player_pants", },
-				   { doChangeJet, "cl_player_jet", },
-				   { doChangeHairstyle, "cl_player_hairstyle", },
-				   { doChangeHeadstyle, "cl_player_headstyle", },
-				   { doChangeChainstyle, "cl_player_chainstyle", },
-				   { doChangeSecWeapon, "cl_player_secwep", },
+static struct configfn cfgfn[] = { { doChangeName, "\"cl_player_name\"" },
+				   { doChangeHair, "\"cl_player_hair\"" },
+				   { doChangeSkin, "\"cl_player_skin\"" },
+				   { doChangeShirt, "\"cl_player_shirt\"" },
+				   { doChangePants, "\"cl_player_pants\"" },
+				   { doChangeJet, "\"cl_player_jet\"" },
+				   { doChangeHairstyle, "\"cl_player_hairstyle\"" },
+				   { doChangeHeadstyle, "\"cl_player_headstyle\"" },
+				   { doChangeChainstyle, "\"cl_player_chainstyle\"" },
+				   { doChangeSecWeapon, "\"cl_player_secwep\"" },
+				   { doFullscreen, "\"r_fullscreen\"" },
+				   { doRenderWidth, "\"r_renderwidth\"" },
+				   { doRenderHeight, "\"r_renderheight\"" },
+				   { doScreenWidth, "\"r_screenwidth\"" },
+				   { doScreenHeight, "\"r_screenheight\"" },
+				   { doFPSLimit, "\"r_fpslimit\"" },
+				   { doMaxFPS, "\"r_maxfps\"" },
+				   { doRenderBackground, "\"r_renderbackground\"" },
+				   { doForceBackground, "\"r_forcebg\"" },
+				   { doBackgroundColorOne, "\"r_forcebg_color1\"" },
+				   { doBackgroundColorTwo, "\"r_forcebg_color2\"" },
+				   { doWeatherEffects, "\"r_weathereffects\"" },
+				   { doSmoothEdges, "\"r_smoothedges\"" },
+				   { doScaleInterface, "\"r_scaleinterface\"" },
+				   { doPlayerIndicator, "\"ui_playerindicator\"" },
+				   { doKillConsole, "\"ui_killconsole\"" },
+				   { doSwapEffect, "\"r_swapeffect\"" },
+				   { doDithering, "\"r_dithering\"" },
 				   { doEnd, "" } };
 
 static int initWindow(void) {
@@ -482,11 +501,11 @@ static void initMenuCaption(Menu *m) {
 
   /* TODO support all kinds of types */
   switch(m->szName[0]) {
-  case 's':
+  case '"':
     switch(m->szName[1]) {
-    case 't': case 'T':
+    case 'c':
       switch(m->szName[2]) {
-      case 'i':
+      case 'l':
 	/* printf("dealing with %s\n", m->szName); */
 	piValue = getVi(m->szName + 4);
 	if(piValue != 0) {
@@ -758,33 +777,17 @@ static void menuAction(Menu *activated)
     pCurrent = activated;
     pCurrent->iHighlight = 0;
   } else {
-    char *param;
-    struct strbuf *name, *val;
-    struct configfn *cfgfnp;
-    
-    param = strstr(cfg.entry->s, activated->szName);
-    name = quotetok(&param);
-    val = quotetok(&param);
-    cfgfnp = cfgfn;
-
-    printf("%s\n", name->s);
-    printf("%s\n", val->s);
-    while(cfgfnp->fn != doEnd) {
-      if(strstr(name->s, cfgfnp->name) != NULL)
-        break;
-      cfgfnp++;
-    }
   }
 }
 
 void loadSettings(char *file)
 {
-  struct strbuf *word;
+  struct strbuf *entry;
   char *path, c;
   FILE *f;
 
   path = getFullPath(file);
-  word = strbuf_alloc();
+  entry = strbuf_alloc();
   f = fopen(path, "r");
   do {
     fread(&c, (size_t) 1, (size_t) 1, f);
@@ -792,15 +795,47 @@ void loadSettings(char *file)
       fprintf(stderr, "error loading config");
       exit(1);
     }
-    strbuf_append1(word, c);
+    strbuf_append1(entry, c);
   } while(!feof(f));
-  cfgp->entry = word;
+  cfgp->entry = entry;
   cfgp->next = malloc(sizeof cfg);
   cfgp->next->prev = cfgp;
   cfgp = cfgp->next;
   cfgp->entry = NULL;
   cfgp->next = &cfg;
   cfg.prev = cfgp;
+}
+
+void setupSound(int *argc, char **argv)
+{
+  alutInit(argc, argv);
+  loadSound(getFullPath("soldat.wav"));
+  setAttribute(AL_LOOPING);
+  playSound();
+}
+
+void parseSettings(void)
+{
+  struct configfn *cfgfnp;
+  char *entry;
+
+  cfgfnp = cfgfn;
+  cfgp = &cfg;
+  while(cfgfnp->fn != doEnd) {
+    while(cfgp->entry != NULL) {
+      if((entry = strstr(cfgp->entry->s, cfgfnp->name)) != NULL) {
+        entrytok(entry, cfgfnp);
+	cfgp = &cfg;
+	break;
+      }
+      cfgp = cfgp->next;
+    }
+    if(cfgp->entry == NULL) {
+      fprintf(stderr, "error loading entry %s", cfgfnp->name);
+      exit(1);
+    }
+    cfgfnp++;
+  }
 }
 
 static void keyboardGui(unsigned char key, int x, int y) {
