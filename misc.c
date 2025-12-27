@@ -1,37 +1,44 @@
 #include <AL/alut.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
 #include "main.h"
 
+static char strnull[] = "";
+
 void entrytok(char *entry, struct configfn *cfgfnp)
 {
   entry += strlen(cfgfnp->name);
   cfgfnp->val = quotetok(entry);
+  if(cfgfnp->val == strnull) {
+    fprintf(stderr, "%s is missing a value", cfgfnp->name);
+    exit(1);
+  }
 }
 
-char *quotetok(char *str)
+char *quotetok(char *buf)
 {
-  int i;
   struct strbuf ret = strbuf_init;
 
-  i = 0;
-  while(*str != '\0')
-    if(*str++ == '"') {
-      while(*str != '\0') {
-        if(str[0] == '"') {
-          if(str[1] == '"') {
-            strbuf_appendn(&ret, str, (size_t) 2);
-	    str += 2;
+  while(*buf != '\0')
+    if(*buf++ == '"') {
+      while(*buf != '\0') {
+        if(buf[0] == '"') {
+          if(buf[1] == '"') {
+            strbuf_appendn(&ret, buf, (size_t) 2);
+	    buf += 2;
 	    continue;
 	  }
 	  break;
 	}
-	strbuf_append1(&ret, *str++);
+	strbuf_append1(&ret, *buf++);
       }
       break;
     }
+  if(ret.len == 0)
+    return strnull;
   return strbuf_finish(&ret);
 }
 

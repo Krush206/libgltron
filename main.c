@@ -513,8 +513,8 @@ static Menu* loadMenu(FILE* f, char* buf, Menu* parent, int level) {
   int i;
 
 
-  if(level > 4) {
-    printf("recursing level > 4 - aborting\n");
+  if(level > 10) {
+    printf("recursing level > 10 - aborting\n");
     exit(1);
   }
 
