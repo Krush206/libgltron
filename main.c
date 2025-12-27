@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "main.h"
 
@@ -51,38 +53,135 @@ static gDisplay *screen;
 static struct config cfg = { NULL, &cfg, &cfg };
 static struct config *cfgp = &cfg;
 
-static struct configfn cfgfn[] = { { doName, changeName, "\"cl_player_name\"" },
-				   { doHair, changeHair, "\"cl_player_hair\"" },
-				   { doSkin, changeSkin, "\"cl_player_skin\"" },
-				   { doShirt, changeShirt, "\"cl_player_shirt\"" },
-				   { doPants, changePants, "\"cl_player_pants\"" },
-				   { doJet, changeJet, "\"cl_player_jet\"" },
-				   { doHairstyle, changeHairstyle, "\"cl_player_hairstyle\"" },
-				   { doHeadstyle, changeHeadstyle, "\"cl_player_headstyle\"" },
-				   { doChainstyle, changeChainstyle, "\"cl_player_chainstyle\"" },
-				   { doSecWeapon, changeSecWeapon, "\"cl_player_secwep\"" },
-				   { doFullscreen, changeFullscreen, "\"r_fullscreen\"" },
-				   { doRenderWidth, changeRenderWidth, "\"r_renderwidth\"" },
-				   { doRenderHeight, changeRenderHeight, "\"r_renderheight\"" },
-				   { doScreenWidth, changeScreenWidth, "\"r_screenwidth\"" },
-				   { doScreenHeight, changeScreenHeight, "\"r_screenheight\"" },
-				   { doFPSLimit, changeFPSLimit, "\"r_fpslimit\"" },
-				   { doMaxFPS, changeMaxFPS, "\"r_maxfps\"" },
-				   { doRenderBackground, changeRenderBackground, "\"r_renderbackground\"" },
-				   { doForceBackground, changeForceBackground, "\"r_forcebg\"" },
-				   { doBackgroundColorOne, changeBackgroundColorOne, "\"r_forcebg_color1\"" },
-				   { doBackgroundColorTwo, changeBackgroundColorTwo, "\"r_forcebg_color2\"" },
-				   { doWeatherEffects, changeWeatherEffects, "\"r_weathereffects\"" },
-				   { doSmoothEdges, changeSmoothEdges, "\"r_smoothedges\"" },
-				   { doScaleInterface, changeScaleInterface, "\"r_scaleinterface\"" },
-				   { doPlayerIndicator, changePlayerIndicator, "\"ui_playerindicator\"" },
-				   { doKillConsole, changeKillConsole, "\"ui_killconsole\"" },
-				   { doSwapEffect, changeSwapEffect, "\"r_swapeffect\"" },
-				   { doDithering, changeDithering, "\"r_dithering\"" },
-				   { doSoundVolume, changeSoundVolume, "\"snd_volume\"" },
-				   { doSoundBattle, changeSoundBattle, "\"snd_effects_battle\"" },
-				   { doSoundExplosions, changeSoundExplosions, "\"snd_effects_explosions\"" },
-				   { doEnd, changeEnd, "" } };
+static struct configfn cfgfn[] = { { doName,
+				     changeName,
+				     "configs/player.cfg",
+				     "\"cl_player_name\"" },
+				   { doHair,
+				     changeHair,
+				     "configs/player.cfg",
+				     "\"cl_player_hair\"" },
+				   { doSkin,
+				     changeSkin,
+				     "configs/player.cfg",
+				     "\"cl_player_skin\"" },
+				   { doShirt,
+				     changeShirt,
+				     "configs/player.cfg",
+				     "\"cl_player_shirt\"" },
+				   { doPants,
+				     changePants,
+				     "configs/player.cfg",
+				     "\"cl_player_pants\"" },
+				   { doJet,
+				     changeJet,
+				     "configs/player.cfg",
+				     "\"cl_player_jet\"" },
+				   { doHairstyle,
+				     changeHairstyle,
+				     "configs/player.cfg",
+				     "\"cl_player_hairstyle\"" },
+				   { doHeadstyle,
+				     changeHeadstyle,
+				     "configs/player.cfg",
+				     "\"cl_player_headstyle\"" },
+				   { doChainstyle,
+				     changeChainstyle,
+				     "configs/player.cfg",
+				     "\"cl_player_chainstyle\"" },
+				   { doSecWeapon,
+				     changeSecWeapon,
+				     "configs/player.cfg",
+				     "\"cl_player_secwep\"" },
+				   { doFullscreen,
+				     changeFullscreen,
+				     "configs/graphics.cfg",
+				     "\"r_fullscreen\"" },
+				   { doRenderWidth,
+				     changeRenderWidth,
+				     "configs/graphics.cfg",
+				     "\"r_renderwidth\"" },
+				   { doRenderHeight,
+				     changeRenderHeight,
+				     "configs/graphics.cfg",
+				     "\"r_renderheight\"" },
+				   { doScreenWidth,
+				     changeScreenWidth,
+				     "configs/graphics.cfg",
+				     "\"r_screenwidth\"" },
+				   { doScreenHeight,
+				     changeScreenHeight,
+				     "configs/graphics.cfg",
+				     "\"r_screenheight\"" },
+				   { doFPSLimit,
+				     changeFPSLimit,
+				     "configs/graphics.cfg",
+				     "\"r_fpslimit\"" },
+				   { doMaxFPS,
+				     changeMaxFPS,
+				     "configs/graphics.cfg",
+				     "\"r_maxfps\"" },
+				   { doRenderBackground,
+				     changeRenderBackground,
+				     "configs/graphics.cfg",
+				     "\"r_renderbackground\"" },
+				   { doForceBackground,
+				     changeForceBackground,
+				     "configs/graphics.cfg",
+				     "\"r_forcebg\"" },
+				   { doBackgroundColorOne,
+				     changeBackgroundColorOne,
+				     "configs/graphics.cfg",
+				     "\"r_forcebg_color1\"" },
+				   { doBackgroundColorTwo,
+				     changeBackgroundColorTwo,
+				     "configs/graphics.cfg",
+				     "\"r_forcebg_color2\"" },
+				   { doWeatherEffects,
+				     changeWeatherEffects,
+				     "configs/graphics.cfg",
+				     "\"r_weathereffects\"" },
+				   { doSmoothEdges,
+				     changeSmoothEdges,
+				     "configs/graphics.cfg",
+				     "\"r_smoothedges\"" },
+				   { doScaleInterface,
+				     changeScaleInterface,
+				     "configs/graphics.cfg",
+				     "\"r_scaleinterface\"" },
+				   { doPlayerIndicator,
+				     changePlayerIndicator,
+				     "configs/graphics.cfg",
+				     "\"ui_playerindicator\"" },
+				   { doKillConsole,
+				     changeKillConsole,
+				     "configs/graphics.cfg",
+				     "\"ui_killconsole\"" },
+				   { doSwapEffect,
+				     changeSwapEffect,
+				     "configs/graphics.cfg",
+				     "\"r_swapeffect\"" },
+				   { doDithering,
+				     changeDithering,
+				     "configs/graphics.cfg",
+				     "\"r_dithering\"" },
+				   { doSoundVolume,
+				     changeSoundVolume,
+				     "configs/sound.cfg",
+				     "snd_volume\"" },
+				   { doSoundBattle,
+				     changeSoundBattle,
+				     "configs/sound.cfg",
+				     "snd_effects_battle\"" },
+				   { doSoundExplosions,
+				     changeSoundExplosions,
+				     "configs/sound.cfg",
+				     "snd_effects_explosions\"" },
+				   { doEnd,
+				     changeEnd,
+				     "",
+				     "" } };
+static struct configfn *cfgfnp = cfgfn;
 
 static int initWindow(void) {
   int win_id;
@@ -495,8 +594,6 @@ static void drawText(int x, int y, int size, char *text) {
 }
 
 static void initMenuCaption(Menu *m) {
-  struct configfn *cfgfnp;
-
   cfgfnp = cfgfn;
   while(cfgfnp->doCaption != doEnd) {
     if(strstr(cfgfnp->name, m->szName) != NULL) {
@@ -760,17 +857,21 @@ static void menuAction(Menu *activated)
     pCurrent = activated;
     pCurrent->iHighlight = 0;
   } else {
-    struct configfn *cfgfnp;
-
     cfgfnp = cfgfn;
     while(cfgfnp->doChange != changeEnd) {
       if(strstr(cfgfnp->name, activated->szName)) {
-        cfgfnp->doChange(cfgfnp);
+        cfgfnp->doChange(cfgfnp, activated);
 	cfgfnp->doCaption(cfgfnp, activated);
 	return;
       }
       cfgfnp++;
     }
+  }
+  switch(activated->szName[1]) {
+  case 'q':
+    exit(0);
+  case 'c':
+    switchCallbacks(&conCallbacks);
   }
 }
 
@@ -810,7 +911,6 @@ void setupSound(int *argc, char **argv)
 
 void parseSettings(void)
 {
-  struct configfn *cfgfnp;
   char *entry;
 
   cfgfnp = cfgfn;
@@ -836,9 +936,7 @@ static void keyboardGui(unsigned char key, int x, int y) {
   int i;
   switch(key) {
   case 27:
-    if(pCurrent->parent == NULL)
-      restoreCallbacks();
-    else
+    if(pCurrent->parent != NULL)
       pCurrent = pCurrent->parent;
     break;
   case 13: case ' ':
@@ -881,6 +979,7 @@ static void initGui(void) {
   pCurrent->iHighlight = 0;
 
   /* rasonly(screen); */
+  srand(time(NULL));
 }
 
 static void initGLGui(void) {
@@ -894,6 +993,70 @@ static void initGLGui(void) {
 
 }
 
+void keyboardName(unsigned char key, int x, int y)
+{
+  static struct strbuf buf;
+
+  switch(key) {
+  case 27:
+    restoreCallbacks();
+    return;
+  case 13:
+    free(cfgfnp->val);
+    cfgfnp->val = strbuf_finish(&buf);
+    memset(&buf, 0, sizeof buf);
+    printf("%s\n", cfgfnp->val);
+    switchCallbacks(&backCallbacks);
+    return;
+  case '"':
+    strbuf_append1(&buf, key);
+  }
+  strbuf_append1(&buf, key);
+}
+
+void keyboardCon(unsigned char key, int x, int y)
+{
+  static struct strbuf buf;
+
+  if(key == 13) {
+    static char *game[4] = { "./opensoldat", "-join", };
+
+    game[2] = strbuf_finish(&buf);
+    game[3] = NULL;
+    execvp(game[0], game);
+    fprintf(stderr, "game not found");
+    exit(1);
+  }
+  strbuf_append1(&buf, key);
+}
+
+void specialNull(int key, int x, int y)
+{
+  ;
+}
+
+void initNull(void)
+{
+  ;
+}
+
+void initGLNull(void)
+{
+  ;
+}
+
 callbacks guiCallbacks = {
   displayGui, idleGui, keyboardGui, specialGui, initGui, initGLGui
+};
+
+callbacks nameCallbacks = {
+  displayGui, idleGui, keyboardName, specialNull, initNull, initGLNull
+};
+
+callbacks backCallbacks = {
+  displayGui, idleGui, keyboardGui, specialGui, initNull, initGLNull
+};
+
+callbacks conCallbacks = {
+  displayGui, idleGui, keyboardCon, specialNull, initNull, initGLNull
 };

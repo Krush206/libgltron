@@ -102,12 +102,16 @@ struct config {
 
 struct configfn {
     void (*doCaption)(struct configfn *, Menu *);
-    void (*doChange)(struct configfn *);
-    char *name,
+    void (*doChange)(struct configfn *, Menu *);
+    char *path,
+	 *name,
 	 *val;
 };
 
 extern callbacks guiCallbacks;
+extern callbacks nameCallbacks;
+extern callbacks backCallbacks;
+extern callbacks conCallbacks;
 
 extern void loadSettings(char *);
 extern void switchCallbacks(callbacks *new);
@@ -159,35 +163,35 @@ extern void loadSound(char *);
 extern void setAttribute(ALenum attr);
 extern void playSound(void);
 extern void setupSound(int *, char **);
-extern void changeSoundVolume(struct configfn *);
-extern void changeSoundBattle(struct configfn *);
-extern void changeSoundExplosions(struct configfn *);
-extern void changeHair(struct configfn *);
-extern void changeSkin(struct configfn *);
-extern void changeEnd(struct configfn *);
-extern void changeHairstyle(struct configfn *);
-extern void changeSecWeapon(struct configfn *);
-extern void changeHeadstyle(struct configfn *);
-extern void changeChainstyle(struct configfn *);
-extern void changeJet(struct configfn *);
-extern void changePants(struct configfn *);
-extern void changeShirt(struct configfn *);
-extern void changeName(struct configfn *);
-extern void changeFullscreen(struct configfn *);
-extern void changeRenderWidth(struct configfn *);
-extern void changeRenderHeight(struct configfn *);
-extern void changeScreenWidth(struct configfn *);
-extern void changeScreenHeight(struct configfn *);
-extern void changeFPSLimit(struct configfn *);
-extern void changeMaxFPS(struct configfn *);
-extern void changeRenderBackground(struct configfn *);
-extern void changeForceBackground(struct configfn *);
-extern void changeBackgroundColorOne(struct configfn *);
-extern void changeBackgroundColorTwo(struct configfn *);
-extern void changeWeatherEffects(struct configfn *);
-extern void changeSmoothEdges(struct configfn *);
-extern void changeScaleInterface(struct configfn *);
-extern void changePlayerIndicator(struct configfn *);
-extern void changeKillConsole(struct configfn *);
-extern void changeSwapEffect(struct configfn *);
-extern void changeDithering(struct configfn *);
+extern void changeSoundVolume(struct configfn *, Menu *);
+extern void changeSoundBattle(struct configfn *, Menu *);
+extern void changeSoundExplosions(struct configfn *, Menu *);
+extern void changeHair(struct configfn *, Menu *);
+extern void changeSkin(struct configfn *, Menu *);
+extern void changeEnd(struct configfn *, Menu *);
+extern void changeHairstyle(struct configfn *, Menu *);
+extern void changeSecWeapon(struct configfn *, Menu *);
+extern void changeHeadstyle(struct configfn *, Menu *);
+extern void changeChainstyle(struct configfn *, Menu *);
+extern void changeJet(struct configfn *, Menu *);
+extern void changePants(struct configfn *, Menu *);
+extern void changeShirt(struct configfn *, Menu *);
+extern void changeName(struct configfn *, Menu *);
+extern void changeFullscreen(struct configfn *, Menu *);
+extern void changeRenderWidth(struct configfn *, Menu *);
+extern void changeRenderHeight(struct configfn *, Menu *);
+extern void changeScreenWidth(struct configfn *, Menu *);
+extern void changeScreenHeight(struct configfn *, Menu *);
+extern void changeFPSLimit(struct configfn *, Menu *);
+extern void changeMaxFPS(struct configfn *, Menu *);
+extern void changeRenderBackground(struct configfn *, Menu *);
+extern void changeForceBackground(struct configfn *, Menu *);
+extern void changeBackgroundColorOne(struct configfn *, Menu *);
+extern void changeBackgroundColorTwo(struct configfn *, Menu *);
+extern void changeWeatherEffects(struct configfn *, Menu *);
+extern void changeSmoothEdges(struct configfn *, Menu *);
+extern void changeScaleInterface(struct configfn *, Menu *);
+extern void changePlayerIndicator(struct configfn *, Menu *);
+extern void changeKillConsole(struct configfn *, Menu *);
+extern void changeSwapEffect(struct configfn *, Menu *);
+extern void changeDithering(struct configfn *, Menu *);

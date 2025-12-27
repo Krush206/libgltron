@@ -5,7 +5,7 @@
 
 #include "main.h"
 
-void changeSoundVolume(struct configfn *cfg)
+void changeSoundVolume(struct configfn *cfg, Menu *m)
 {
   int val;
   char new[8];
@@ -28,7 +28,7 @@ void changeSoundVolume(struct configfn *cfg)
   cfg->val = strbuf_finish(&buf);
 }
 
-void changeSoundBattle(struct configfn *cfg)
+void changeSoundBattle(struct configfn *cfg, Menu *m)
 {
   int val;
   char new[8];
@@ -42,7 +42,7 @@ void changeSoundBattle(struct configfn *cfg)
   cfg->val = strbuf_finish(&buf);
 }
 
-void changeSoundExplosions(struct configfn *cfg)
+void changeSoundExplosions(struct configfn *cfg, Menu *m)
 {
   int val;
   char new[8];
@@ -56,119 +56,153 @@ void changeSoundExplosions(struct configfn *cfg)
   cfg->val = strbuf_finish(&buf);
 }
 
-void changeShirt(struct configfn *cfg)
+void changeShirt(struct configfn *cfg, Menu *m)
 {
 }
 
-void changeJet(struct configfn *cfg)
+void changeJet(struct configfn *cfg, Menu *m)
 {
 }
 
-void changeHair(struct configfn *cfg)
+void changeHair(struct configfn *cfg, Menu *m)
 {
 }
 
-void changeSkin(struct configfn *cfg)
+void changeSkin(struct configfn *cfg, Menu *m)
 {
 }
 
-void changeEnd(struct configfn *cfg)
+void changeEnd(struct configfn *cfg, Menu *m)
+{
+  ;
+}
+
+void changeHairstyle(struct configfn *cfg, Menu *m)
+{
+  char new[8];
+  struct strbuf buf = strbuf_init;
+
+  free(cfg->val);
+  sprintf(new, "%d", m->parent->iHighlight);
+  strbuf_append(&buf, new);
+  cfg->val = strbuf_finish(&buf);
+  guiCallbacks.keyboard(27, 0, 0);
+}
+
+void changeSecWeapon(struct configfn *cfg, Menu *m)
+{
+  char new[8];
+  struct strbuf buf = strbuf_init;
+
+  free(cfg->val);
+  sprintf(new, "%d", m->parent->iHighlight);
+  strbuf_append(&buf, new);
+  cfg->val = strbuf_finish(&buf);
+  guiCallbacks.keyboard(27, 0, 0);
+}
+
+void changeHeadstyle(struct configfn *cfg, Menu *m)
+{
+  char new[8];
+  struct strbuf buf = strbuf_init;
+
+  free(cfg->val);
+  sprintf(new, "%d", m->parent->iHighlight);
+  strbuf_append(&buf, new);
+  cfg->val = strbuf_finish(&buf);
+  guiCallbacks.keyboard(27, 0, 0);
+}
+
+void changeChainstyle(struct configfn *cfg, Menu *m)
+{
+  char new[8];
+  struct strbuf buf = strbuf_init;
+
+  free(cfg->val);
+  sprintf(new, "%d", m->parent->iHighlight);
+  strbuf_append(&buf, new);
+  cfg->val = strbuf_finish(&buf);
+  guiCallbacks.keyboard(27, 0, 0);
+}
+
+void changeName(struct configfn *cfg, Menu *m)
+{
+  switchCallbacks(&nameCallbacks);
+}
+
+void changePants(struct configfn *cfg, Menu *m)
 {
 }
 
-void changeHairstyle(struct configfn *cfg)
+void changeFullscreen(struct configfn *cfg, Menu *m)
 {
 }
 
-void changeSecWeapon(struct configfn *cfg)
+void changeRenderWidth(struct configfn *cfg, Menu *m)
 {
 }
 
-void changeHeadstyle(struct configfn *cfg)
+void changeRenderHeight(struct configfn *cfg, Menu *m)
 {
 }
 
-void changeChainstyle(struct configfn *cfg)
+void changeScreenWidth(struct configfn *cfg, Menu *m)
 {
 }
 
-void changeName(struct configfn *cfg)
+void changeScreenHeight(struct configfn *cfg, Menu *m)
 {
 }
 
-void changePants(struct configfn *cfg)
+void changeFPSLimit(struct configfn *cfg, Menu *m)
 {
 }
 
-void changeFullscreen(struct configfn *cfg)
+void changeMaxFPS(struct configfn *cfg, Menu *m)
 {
 }
 
-void changeRenderWidth(struct configfn *cfg)
+void changeRenderBackground(struct configfn *cfg, Menu *m)
 {
 }
 
-void changeRenderHeight(struct configfn *cfg)
+void changeForceBackground(struct configfn *cfg, Menu *m)
 {
 }
 
-void changeScreenWidth(struct configfn *cfg)
+void changeBackgroundColorOne(struct configfn *cfg, Menu *m)
 {
 }
 
-void changeScreenHeight(struct configfn *cfg)
+void changeBackgroundColorTwo(struct configfn *cfg, Menu *m)
 {
 }
 
-void changeFPSLimit(struct configfn *cfg)
+void changeWeatherEffects(struct configfn *cfg, Menu *m)
 {
 }
 
-void changeMaxFPS(struct configfn *cfg)
+void changeSmoothEdges(struct configfn *cfg, Menu *m)
 {
 }
 
-void changeRenderBackground(struct configfn *cfg)
+void changeScaleInterface(struct configfn *cfg, Menu *m)
 {
 }
 
-void changeForceBackground(struct configfn *cfg)
+void changePlayerIndicator(struct configfn *cfg, Menu *m)
 {
 }
 
-void changeBackgroundColorOne(struct configfn *cfg)
+void changeKillConsole(struct configfn *cfg, Menu *m)
 {
 }
 
-void changeBackgroundColorTwo(struct configfn *cfg)
+void changeSwapEffect(struct configfn *cfg, Menu *m)
 {
 }
 
-void changeWeatherEffects(struct configfn *cfg)
-{
-}
-
-void changeSmoothEdges(struct configfn *cfg)
-{
-}
-
-void changeScaleInterface(struct configfn *cfg)
-{
-}
-
-void changePlayerIndicator(struct configfn *cfg)
-{
-}
-
-void changeKillConsole(struct configfn *cfg)
-{
-}
-
-void changeSwapEffect(struct configfn *cfg)
-{
-}
-
-void changeDithering(struct configfn *cfg)
+void changeDithering(struct configfn *cfg, Menu *m)
 {
 }
 
@@ -216,6 +250,7 @@ void doSkin(struct configfn *cfg, Menu *m)
 
 void doEnd(struct configfn *cfg, Menu *m)
 {
+  ;
 }
 
 void doHairstyle(struct configfn *cfg, Menu *m)
@@ -268,7 +303,7 @@ void doScreenWidth(struct configfn *cfg, Menu *m)
   int val;
 
   sscanf(cfg->val, "%d", &val);
-  sprintf(m->display.szCaption, m->szCapFormat, val ? "on" : "off");
+  sprintf(m->display.szCaption, "%s", m->szCapFormat);
 }
 
 void doScreenHeight(struct configfn *cfg, Menu *m)
