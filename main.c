@@ -26,7 +26,6 @@ static void rasonly(gDisplay *d);
 static void restoreCallbacks(void);
 static void ftxRenderString(fonttex *ftx, char *string, int len);
 static void drawText(int x, int y, int size, char *text);
-static int* getVi(char* name);
 static void initMenuCaption(Menu *m);
 static Menu* loadMenu(FILE* f, char* buf, Menu* parent, int level);
 static Menu** loadMenuFile(char *filename);
@@ -52,35 +51,38 @@ static gDisplay *screen;
 static struct config cfg = { NULL, &cfg, &cfg };
 static struct config *cfgp = &cfg;
 
-static struct configfn cfgfn[] = { { doChangeName, "\"cl_player_name\"" },
-				   { doChangeHair, "\"cl_player_hair\"" },
-				   { doChangeSkin, "\"cl_player_skin\"" },
-				   { doChangeShirt, "\"cl_player_shirt\"" },
-				   { doChangePants, "\"cl_player_pants\"" },
-				   { doChangeJet, "\"cl_player_jet\"" },
-				   { doChangeHairstyle, "\"cl_player_hairstyle\"" },
-				   { doChangeHeadstyle, "\"cl_player_headstyle\"" },
-				   { doChangeChainstyle, "\"cl_player_chainstyle\"" },
-				   { doChangeSecWeapon, "\"cl_player_secwep\"" },
-				   { doFullscreen, "\"r_fullscreen\"" },
-				   { doRenderWidth, "\"r_renderwidth\"" },
-				   { doRenderHeight, "\"r_renderheight\"" },
-				   { doScreenWidth, "\"r_screenwidth\"" },
-				   { doScreenHeight, "\"r_screenheight\"" },
-				   { doFPSLimit, "\"r_fpslimit\"" },
-				   { doMaxFPS, "\"r_maxfps\"" },
-				   { doRenderBackground, "\"r_renderbackground\"" },
-				   { doForceBackground, "\"r_forcebg\"" },
-				   { doBackgroundColorOne, "\"r_forcebg_color1\"" },
-				   { doBackgroundColorTwo, "\"r_forcebg_color2\"" },
-				   { doWeatherEffects, "\"r_weathereffects\"" },
-				   { doSmoothEdges, "\"r_smoothedges\"" },
-				   { doScaleInterface, "\"r_scaleinterface\"" },
-				   { doPlayerIndicator, "\"ui_playerindicator\"" },
-				   { doKillConsole, "\"ui_killconsole\"" },
-				   { doSwapEffect, "\"r_swapeffect\"" },
-				   { doDithering, "\"r_dithering\"" },
-				   { doEnd, "" } };
+static struct configfn cfgfn[] = { { doName, changeName, "\"cl_player_name\"" },
+				   { doHair, changeHair, "\"cl_player_hair\"" },
+				   { doSkin, changeSkin, "\"cl_player_skin\"" },
+				   { doShirt, changeShirt, "\"cl_player_shirt\"" },
+				   { doPants, changePants, "\"cl_player_pants\"" },
+				   { doJet, changeJet, "\"cl_player_jet\"" },
+				   { doHairstyle, changeHairstyle, "\"cl_player_hairstyle\"" },
+				   { doHeadstyle, changeHeadstyle, "\"cl_player_headstyle\"" },
+				   { doChainstyle, changeChainstyle, "\"cl_player_chainstyle\"" },
+				   { doSecWeapon, changeSecWeapon, "\"cl_player_secwep\"" },
+				   { doFullscreen, changeFullscreen, "\"r_fullscreen\"" },
+				   { doRenderWidth, changeRenderWidth, "\"r_renderwidth\"" },
+				   { doRenderHeight, changeRenderHeight, "\"r_renderheight\"" },
+				   { doScreenWidth, changeScreenWidth, "\"r_screenwidth\"" },
+				   { doScreenHeight, changeScreenHeight, "\"r_screenheight\"" },
+				   { doFPSLimit, changeFPSLimit, "\"r_fpslimit\"" },
+				   { doMaxFPS, changeMaxFPS, "\"r_maxfps\"" },
+				   { doRenderBackground, changeRenderBackground, "\"r_renderbackground\"" },
+				   { doForceBackground, changeForceBackground, "\"r_forcebg\"" },
+				   { doBackgroundColorOne, changeBackgroundColorOne, "\"r_forcebg_color1\"" },
+				   { doBackgroundColorTwo, changeBackgroundColorTwo, "\"r_forcebg_color2\"" },
+				   { doWeatherEffects, changeWeatherEffects, "\"r_weathereffects\"" },
+				   { doSmoothEdges, changeSmoothEdges, "\"r_smoothedges\"" },
+				   { doScaleInterface, changeScaleInterface, "\"r_scaleinterface\"" },
+				   { doPlayerIndicator, changePlayerIndicator, "\"ui_playerindicator\"" },
+				   { doKillConsole, changeKillConsole, "\"ui_killconsole\"" },
+				   { doSwapEffect, changeSwapEffect, "\"r_swapeffect\"" },
+				   { doDithering, changeDithering, "\"r_dithering\"" },
+				   { doSoundVolume, changeSoundVolume, "\"snd_volume\"" },
+				   { doSoundBattle, changeSoundBattle, "\"snd_effects_battle\"" },
+				   { doSoundExplosions, changeSoundExplosions, "\"snd_effects_explosions\"" },
+				   { doEnd, changeEnd, "" } };
 
 static int initWindow(void) {
   int win_id;
@@ -492,37 +494,18 @@ static void drawText(int x, int y, int size, char *text) {
   polycount += strlen(text);
 }
 
-static int* getVi(char* name) {
-  return 0;
-}
-
 static void initMenuCaption(Menu *m) {
-  int *piValue;
+  struct configfn *cfgfnp;
 
-  /* TODO support all kinds of types */
-  switch(m->szName[0]) {
-  case '"':
-    switch(m->szName[1]) {
-    case 'c':
-      switch(m->szName[2]) {
-      case 'l':
-	/* printf("dealing with %s\n", m->szName); */
-	piValue = getVi(m->szName + 4);
-	if(piValue != 0) {
-	  if(*piValue == 0) sprintf(m->display.szCaption,
-				    m->szCapFormat, "off");
-	  else sprintf(m->display.szCaption, m->szCapFormat, "on");
-	  /* printf("changed caption to %s\n", m->display.szCaption); */
-	} /* else printf("can't find value for %s\n", m->szName + 4); */
-	break;
-      }
+  cfgfnp = cfgfn;
+  while(cfgfnp->doCaption != doEnd) {
+    if(strstr(cfgfnp->name, m->szName) != NULL) {
+      cfgfnp->doCaption(cfgfnp, m);
+      return;
     }
-    break;
-    /* c entries change the callback */
-
-  default:
-    sprintf(m->display.szCaption, "%s", m->szCapFormat);
+    cfgfnp++;
   }
+  sprintf(m->display.szCaption, "%s", m->szCapFormat);
 }
 
 static Menu* loadMenu(FILE* f, char* buf, Menu* parent, int level) {
@@ -777,6 +760,17 @@ static void menuAction(Menu *activated)
     pCurrent = activated;
     pCurrent->iHighlight = 0;
   } else {
+    struct configfn *cfgfnp;
+
+    cfgfnp = cfgfn;
+    while(cfgfnp->doChange != changeEnd) {
+      if(strstr(cfgfnp->name, activated->szName)) {
+        cfgfnp->doChange(cfgfnp);
+	cfgfnp->doCaption(cfgfnp, activated);
+	return;
+      }
+      cfgfnp++;
+    }
   }
 }
 
@@ -821,7 +815,7 @@ void parseSettings(void)
 
   cfgfnp = cfgfn;
   cfgp = &cfg;
-  while(cfgfnp->fn != doEnd) {
+  while(cfgfnp->doCaption != doEnd) {
     while(cfgp->entry != NULL) {
       if((entry = strstr(cfgp->entry->s, cfgfnp->name)) != NULL) {
         entrytok(entry, cfgfnp);

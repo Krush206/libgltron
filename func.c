@@ -1,121 +1,301 @@
 #include <AL/alut.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <stddef.h>
 
 #include "main.h"
 
-void doChangeShirt(void)
+void changeSoundVolume(struct configfn *cfgfnp)
+{
+  int val;
+  char new[8];
+  struct strbuf buf = strbuf_init;
+
+  sscanf(cfgfnp->val, "%d", &val);
+  switch(val) {
+  case 0:
+  case 25:
+  case 50:
+  case 75:
+    val += 25;
+    break;
+  case 100:
+    val = 0;
+  }
+  free(cfgfnp->val);
+  sprintf(new, "%d", val);
+  strbuf_append(&buf, new);
+  cfgfnp->val = strbuf_finish(&buf);
+}
+
+void changeSoundBattle(struct configfn *cfgfnp)
 {
 }
 
-void doChangeJet(void)
+void changeSoundExplosions(struct configfn *cfgfnp)
 {
 }
 
-void doChangeHair(void)
+void changeShirt(struct configfn *cfgfnp)
 {
 }
 
-void doChangeSkin(void)
+void changeJet(struct configfn *cfgfnp)
 {
 }
 
-void doEnd(void)
+void changeHair(struct configfn *cfgfnp)
 {
 }
 
-void doChangeHairstyle(void)
+void changeSkin(struct configfn *cfgfnp)
 {
 }
 
-void doChangeSecWeapon(void)
+void changeEnd(struct configfn *cfgfnp)
 {
 }
 
-void doChangeHeadstyle(void)
+void changeHairstyle(struct configfn *cfgfnp)
 {
 }
 
-void doChangeChainstyle(void)
+void changeSecWeapon(struct configfn *cfgfnp)
 {
 }
 
-void doChangeName(void)
+void changeHeadstyle(struct configfn *cfgfnp)
 {
 }
 
-void doChangePants(void)
+void changeChainstyle(struct configfn *cfgfnp)
 {
 }
 
-void doFullscreen(void)
+void changeName(struct configfn *cfgfnp)
 {
 }
 
-void doRenderWidth(void)
+void changePants(struct configfn *cfgfnp)
 {
 }
 
-void doRenderHeight(void)
+void changeFullscreen(struct configfn *cfgfnp)
 {
 }
 
-void doScreenWidth(void)
+void changeRenderWidth(struct configfn *cfgfnp)
 {
 }
 
-void doScreenHeight(void)
+void changeRenderHeight(struct configfn *cfgfnp)
 {
 }
 
-void doFPSLimit(void)
+void changeScreenWidth(struct configfn *cfgfnp)
 {
 }
 
-void doMaxFPS(void)
+void changeScreenHeight(struct configfn *cfgfnp)
 {
 }
 
-void doRenderBackground(void)
+void changeFPSLimit(struct configfn *cfgfnp)
 {
 }
 
-void doForceBackground(void)
+void changeMaxFPS(struct configfn *cfgfnp)
 {
 }
 
-void doBackgroundColorOne(void)
+void changeRenderBackground(struct configfn *cfgfnp)
 {
 }
 
-void doBackgroundColorTwo(void)
+void changeForceBackground(struct configfn *cfgfnp)
 {
 }
 
-void doWeatherEffects(void)
+void changeBackgroundColorOne(struct configfn *cfgfnp)
 {
 }
 
-void doSmoothEdges(void)
+void changeBackgroundColorTwo(struct configfn *cfgfnp)
 {
 }
 
-void doScaleInterface(void)
+void changeWeatherEffects(struct configfn *cfgfnp)
 {
 }
 
-void doPlayerIndicator(void)
+void changeSmoothEdges(struct configfn *cfgfnp)
 {
 }
 
-void doKillConsole(void)
+void changeScaleInterface(struct configfn *cfgfnp)
 {
 }
 
-void doSwapEffect(void)
+void changePlayerIndicator(struct configfn *cfgfnp)
 {
 }
 
-void doDithering(void)
+void changeKillConsole(struct configfn *cfgfnp)
+{
+}
+
+void changeSwapEffect(struct configfn *cfgfnp)
+{
+}
+
+void changeDithering(struct configfn *cfgfnp)
+{
+}
+
+
+void doSoundVolume(struct configfn *cfgfnp, Menu *m)
+{
+  sprintf(m->display.szCaption, m->szCapFormat, cfgfnp->val);
+}
+
+void doSoundBattle(struct configfn *cfgfnp, Menu *m)
+{
+  int val;
+
+  sscanf(cfgfnp->val, "%d", &val);
+  sprintf(m->display.szCaption, m->szCapFormat, val ? "on" : "off");
+}
+
+void doSoundExplosions(struct configfn *cfgfnp, Menu *m)
+{
+  int val;
+
+  sscanf(cfgfnp->val, "%d", &val);
+  sprintf(m->display.szCaption, m->szCapFormat, val ? "on" : "off");
+}
+
+void doShirt(struct configfn *cfgfnp, Menu *m)
+{
+  sprintf(m->display.szCaption, "%s - %s", "Shirt", cfgfnp->val);
+}
+
+void doJet(struct configfn *cfgfnp, Menu *m)
+{
+  sprintf(m->display.szCaption, "%s - %s", "Jet", cfgfnp->val);
+}
+
+void doHair(struct configfn *cfgfnp, Menu *m)
+{
+  sprintf(m->display.szCaption, "%s - %s", "Hair", cfgfnp->val);
+}
+
+void doSkin(struct configfn *cfgfnp, Menu *m)
+{
+  sprintf(m->display.szCaption, "%s - %s", "Skin", cfgfnp->val);
+}
+
+void doEnd(struct configfn *cfgfnp, Menu *m)
+{
+}
+
+void doHairstyle(struct configfn *cfgfnp, Menu *m)
+{
+  sprintf(m->display.szCaption, "%s - %s", "Hair style", cfgfnp->val);
+}
+
+void doSecWeapon(struct configfn *cfgfnp, Menu *m)
+{
+  sprintf(m->display.szCaption, "%s - %s", "Secondary weapon", cfgfnp->val);
+}
+
+void doHeadstyle(struct configfn *cfgfnp, Menu *m)
+{
+  sprintf(m->display.szCaption, "%s - %s", "Head style", cfgfnp->val);
+}
+
+void doChainstyle(struct configfn *cfgfnp, Menu *m)
+{
+  sprintf(m->display.szCaption, "%s - %s", "Chain style", cfgfnp->val);
+}
+
+void doName(struct configfn *cfgfnp, Menu *m)
+{
+  sprintf(m->display.szCaption, "%s - %s", "Name", cfgfnp->val);
+}
+
+void doPants(struct configfn *cfgfnp, Menu *m)
+{
+}
+
+void doFullscreen(struct configfn *cfgfnp, Menu *m)
+{
+}
+
+void doRenderWidth(struct configfn *cfgfnp, Menu *m)
+{
+}
+
+void doRenderHeight(struct configfn *cfgfnp, Menu *m)
+{
+}
+
+void doScreenWidth(struct configfn *cfgfnp, Menu *m)
+{
+}
+
+void doScreenHeight(struct configfn *cfgfnp, Menu *m)
+{
+}
+
+void doFPSLimit(struct configfn *cfgfnp, Menu *m)
+{
+}
+
+void doMaxFPS(struct configfn *cfgfnp, Menu *m)
+{
+}
+
+void doRenderBackground(struct configfn *cfgfnp, Menu *m)
+{
+}
+
+void doForceBackground(struct configfn *cfgfnp, Menu *m)
+{
+}
+
+void doBackgroundColorOne(struct configfn *cfgfnp, Menu *m)
+{
+}
+
+void doBackgroundColorTwo(struct configfn *cfgfnp, Menu *m)
+{
+}
+
+void doWeatherEffects(struct configfn *cfgfnp, Menu *m)
+{
+}
+
+void doSmoothEdges(struct configfn *cfgfnp, Menu *m)
+{
+}
+
+void doScaleInterface(struct configfn *cfgfnp, Menu *m)
+{
+}
+
+void doPlayerIndicator(struct configfn *cfgfnp, Menu *m)
+{
+}
+
+void doKillConsole(struct configfn *cfgfnp, Menu *m)
+{
+}
+
+void doSwapEffect(struct configfn *cfgfnp, Menu *m)
+{
+}
+
+void doDithering(struct configfn *cfgfnp, Menu *m)
 {
 }
 
