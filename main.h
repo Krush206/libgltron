@@ -95,9 +95,9 @@ struct strbuf {
 };
 
 struct config {
-    struct strbuf *entry;
     struct config *next,
 		  *prev;
+    char *entry, *path;
 };
 
 struct configfn {
@@ -112,7 +112,9 @@ extern callbacks guiCallbacks;
 extern callbacks nameCallbacks;
 extern callbacks backCallbacks;
 extern callbacks conCallbacks;
+extern callbacks runCallbacks;
 
+extern void saveSettings(void);
 extern void loadSettings(char *);
 extern void switchCallbacks(callbacks *new);
 extern void setupDisplay(gDisplay *d);

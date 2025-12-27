@@ -5,6 +5,7 @@
 #include <math.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 #include "main.h"
 
@@ -50,7 +51,7 @@ static int lasttime, polycount;
 
 static gDisplay *screen;
 
-static struct config cfg = { NULL, &cfg, &cfg };
+static struct config cfg = { &cfg, &cfg };
 static struct config *cfgp = &cfg;
 
 static struct configfn cfgfn[] = { { doName,
@@ -168,15 +169,15 @@ static struct configfn cfgfn[] = { { doName,
 				   { doSoundVolume,
 				     changeSoundVolume,
 				     "configs/sound.cfg",
-				     "snd_volume\"" },
+				     "\"snd_volume\"" },
 				   { doSoundBattle,
 				     changeSoundBattle,
 				     "configs/sound.cfg",
-				     "snd_effects_battle\"" },
+				     "\"snd_effects_battle\"" },
 				   { doSoundExplosions,
 				     changeSoundExplosions,
 				     "configs/sound.cfg",
-				     "snd_effects_explosions\"" },
+				     "\"snd_effects_explosions\"" },
 				   { doEnd,
 				     changeEnd,
 				     "",
@@ -869,6 +870,7 @@ static void menuAction(Menu *activated)
   }
   switch(activated->szName[1]) {
   case 'q':
+    saveSettings();
     exit(0);
   case 'c':
     switchCallbacks(&conCallbacks);
@@ -877,12 +879,11 @@ static void menuAction(Menu *activated)
 
 void loadSettings(char *file)
 {
-  struct strbuf *entry;
+  struct strbuf entry = strbuf_init;
   char *path, c;
   FILE *f;
 
   path = getFullPath(file);
-  entry = strbuf_alloc();
   f = fopen(path, "r");
   do {
     fread(&c, (size_t) 1, (size_t) 1, f);
@@ -890,9 +891,10 @@ void loadSettings(char *file)
       fprintf(stderr, "error loading config");
       exit(1);
     }
-    strbuf_append1(entry, c);
+    strbuf_append1(&entry, c);
   } while(!feof(f));
-  cfgp->entry = entry;
+  cfgp->path = path;
+  cfgp->entry = entry.s;
   cfgp->next = malloc(sizeof cfg);
   cfgp->next->prev = cfgp;
   cfgp = cfgp->next;
@@ -917,7 +919,7 @@ void parseSettings(void)
   cfgp = &cfg;
   while(cfgfnp->doCaption != doEnd) {
     while(cfgp->entry != NULL) {
-      if((entry = strstr(cfgp->entry->s, cfgfnp->name)) != NULL) {
+      if((entry = strstr(cfgp->entry, cfgfnp->name)) != NULL) {
         entrytok(entry, cfgfnp);
 	cfgp = &cfg;
 	break;
@@ -1018,14 +1020,24 @@ void keyboardCon(unsigned char key, int x, int y)
 {
   static struct strbuf buf;
 
-  if(key == 13) {
+  switch(key) {
+  case 13:
     static char *game[4] = { "./opensoldat", "-join", };
 
-    game[2] = strbuf_finish(&buf);
-    game[3] = NULL;
-    execvp(game[0], game);
-    fprintf(stderr, "game not found");
-    exit(1);
+    if(fork() == 0) {
+      game[2] = strbuf_finish(&buf);
+      game[3] = NULL;
+      saveSettings();
+      execvp(game[0], game);
+      fprintf(stderr, "game not found");
+      exit(1);
+    }
+    free(buf.s);
+    memset(&buf, 0, sizeof buf);
+    switchCallbacks(&runCallbacks);
+    return;
+  case 27:
+    switchCallbacks(&backCallbacks);
   }
   strbuf_append1(&buf, key);
 }
@@ -1044,6 +1056,60 @@ void initGLNull(void)
 {
   ;
 }
+
+void saveSettings(void)
+{
+  struct strbuf entry = strbuf_init;
+
+  for(cfgp = &cfg; cfgp->entry != NULL; cfgp = cfgp->next) {
+    char *data;
+    FILE *f;
+
+    for(cfgfnp = cfgfn; strlen(cfgfnp->path); cfgfnp++) {
+      if(strstr(cfgp->entry, cfgfnp->name) != NULL) {
+        strbuf_append(&entry, cfgfnp->name);
+	strbuf_append(&entry, " \"");
+	strbuf_append(&entry, cfgfnp->val);
+	strbuf_append(&entry, "\"\n");
+	strbuf_terminate(&entry);
+      }
+    }
+    f = fopen(cfgp->path, "w");
+    data = entry.s;
+    while(*data != '\0')
+      fwrite(data++, (size_t) 1, (size_t) 1, f);
+    fclose(f);
+    strbuf_cleanup(&entry);
+    memset(&entry, 0, sizeof entry);
+  }
+}
+
+void initRun(void)
+{
+  glutHideWindow();
+  wait(NULL);
+  glutShowWindow();
+  switchCallbacks(&backCallbacks);
+}
+
+void idleNull(void)
+{
+  ;
+}
+
+void displayNull(void)
+{
+  ;
+}
+
+void keyboardNull(unsigned char key, int x, int y)
+{
+  ;
+}
+
+callbacks runCallbacks = {
+  displayNull, idleNull, keyboardNull, specialNull, initRun, initGLNull
+};
 
 callbacks guiCallbacks = {
   displayGui, idleGui, keyboardGui, specialGui, initGui, initGLGui
