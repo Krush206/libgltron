@@ -41,6 +41,15 @@ static void keyboardGui(unsigned char key, int x, int y);
 static void  specialGui(int key, int x, int y);
 static void initGui(void);
 static void initGLGui(void);
+static void keyboardCon(unsigned char, int, int);
+static void keyboardName(unsigned char, int, int);
+static void initNull(void);
+static void initGLNull(void);
+static void keyboardNull(unsigned char, int, int);
+static void idleNull(void);
+static void specialNull(int, int, int);
+static void displayNull(void);
+static void saveSettings(void);
 
 static Menu *pCurrent, **pMenuList;
 static fonttex *ftx;
@@ -894,7 +903,7 @@ void loadSettings(char *file)
     strbuf_append1(&entry, c);
   } while(!feof(f));
   cfgp->path = path;
-  cfgp->entry = entry.s;
+  cfgp->entry = strbuf_finish(&entry);
   cfgp->next = malloc(sizeof cfg);
   cfgp->next->prev = cfgp;
   cfgp = cfgp->next;
@@ -995,7 +1004,7 @@ static void initGLGui(void) {
 
 }
 
-void keyboardName(unsigned char key, int x, int y)
+static void keyboardName(unsigned char key, int x, int y)
 {
   static struct strbuf buf;
 
@@ -1016,7 +1025,7 @@ void keyboardName(unsigned char key, int x, int y)
   strbuf_append1(&buf, key);
 }
 
-void keyboardCon(unsigned char key, int x, int y)
+static void keyboardCon(unsigned char key, int x, int y)
 {
   static struct strbuf buf;
 
@@ -1034,7 +1043,9 @@ void keyboardCon(unsigned char key, int x, int y)
     }
     free(buf.s);
     memset(&buf, 0, sizeof buf);
-    switchCallbacks(&runCallbacks);
+    switchCallbacks(&nullCallbacks);
+    wait(NULL);
+    switchCallbacks(&backCallbacks);
     return;
   case 27:
     switchCallbacks(&backCallbacks);
@@ -1042,22 +1053,22 @@ void keyboardCon(unsigned char key, int x, int y)
   strbuf_append1(&buf, key);
 }
 
-void specialNull(int key, int x, int y)
+static void specialNull(int key, int x, int y)
 {
   ;
 }
 
-void initNull(void)
+static void initNull(void)
 {
   ;
 }
 
-void initGLNull(void)
+static void initGLNull(void)
 {
   ;
 }
 
-void saveSettings(void)
+static void saveSettings(void)
 {
   struct strbuf entry = strbuf_init;
 
@@ -1065,7 +1076,7 @@ void saveSettings(void)
     char *data;
     FILE *f;
 
-    for(cfgfnp = cfgfn; strlen(cfgfnp->path); cfgfnp++) {
+    for(cfgfnp = cfgfn; strlen(cfgfnp->name); cfgfnp++) {
       if(strstr(cfgp->entry, cfgfnp->name) != NULL) {
         strbuf_append(&entry, cfgfnp->name);
 	strbuf_append(&entry, " \"");
@@ -1084,31 +1095,23 @@ void saveSettings(void)
   }
 }
 
-void initRun(void)
-{
-  glutHideWindow();
-  wait(NULL);
-  glutShowWindow();
-  switchCallbacks(&backCallbacks);
-}
-
-void idleNull(void)
+static void idleNull(void)
 {
   ;
 }
 
-void displayNull(void)
+static void displayNull(void)
 {
   ;
 }
 
-void keyboardNull(unsigned char key, int x, int y)
+static void keyboardNull(unsigned char key, int x, int y)
 {
   ;
 }
 
-callbacks runCallbacks = {
-  displayNull, idleNull, keyboardNull, specialNull, initRun, initGLNull
+callbacks nullCallbacks = {
+  displayNull, idleNull, keyboardNull, specialNull, initNull, initGLNull
 };
 
 callbacks guiCallbacks = {
