@@ -164,7 +164,7 @@ extern void doSoundExplosions(struct configfn *, Menu *);
 extern void loadSound(char *);
 extern void setAttribute(ALenum attr);
 extern void playSound(void);
-extern void setupSound(int *, char **);
+extern void setupSound(char *);
 extern void changeSoundVolume(struct configfn *, Menu *);
 extern void changeSoundBattle(struct configfn *, Menu *);
 extern void changeSoundExplosions(struct configfn *, Menu *);

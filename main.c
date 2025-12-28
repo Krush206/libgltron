@@ -912,10 +912,9 @@ void loadSettings(char *file)
   cfg.prev = cfgp;
 }
 
-void setupSound(int *argc, char **argv)
+void setupSound(char *file)
 {
-  alutInit(argc, argv);
-  loadSound(getFullPath("soldat.wav"));
+  loadSound(getFullPath(file));
   setAttribute(AL_LOOPING);
   playSound();
 }
@@ -1043,7 +1042,6 @@ static void keyboardCon(unsigned char key, int x, int y)
     }
     free(buf.s);
     memset(&buf, 0, sizeof buf);
-    switchCallbacks(&nullCallbacks);
     wait(NULL);
     switchCallbacks(&backCallbacks);
     return;
