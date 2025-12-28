@@ -132,6 +132,7 @@ void changeName(struct configfn *cfg, Menu *m)
 
 void changePants(struct configfn *cfg, Menu *m)
 {
+  switchCallbacks(&colorCallbacks);
 }
 
 void changeFullscreen(struct configfn *cfg, Menu *m)
@@ -235,6 +236,7 @@ void doShirt(struct configfn *cfg, Menu *m)
 
 void doJet(struct configfn *cfg, Menu *m)
 {
+  printf("ok\n");
   sprintf(m->display.szCaption, m->szCapFormat, cfg->val);
 }
 
@@ -280,6 +282,7 @@ void doName(struct configfn *cfg, Menu *m)
 
 void doPants(struct configfn *cfg, Menu *m)
 {
+  sprintf(m->display.szCaption, m->szCapFormat, cfg->val);
 }
 
 void doFullscreen(struct configfn *cfg, Menu *m)

@@ -114,6 +114,7 @@ extern callbacks backCallbacks;
 extern callbacks conCallbacks;
 extern callbacks runCallbacks;
 extern callbacks nullCallbacks;
+extern callbacks colorCallbacks;
 
 extern void loadSettings(char *);
 extern void switchCallbacks(callbacks *new);

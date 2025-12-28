@@ -869,6 +869,7 @@ static void menuAction(Menu *activated)
   } else {
     cfgfnp = cfgfn;
     while(cfgfnp->doChange != changeEnd) {
+      printf("%s\n", cfgfnp->name);
       if(strstr(cfgfnp->name, activated->szName)) {
         cfgfnp->doChange(cfgfnp, activated);
 	cfgfnp->doCaption(cfgfnp, activated);
@@ -1003,52 +1004,69 @@ static void initGLGui(void) {
 
 }
 
+static struct strbuf buf;
+
 static void keyboardName(unsigned char key, int x, int y)
 {
-  static struct strbuf buf;
-
   switch(key) {
   case 27:
+    strbuf_cleanup(&buf);
+    memset(&buf, 0, sizeof buf);
     restoreCallbacks();
     return;
   case 13:
     free(cfgfnp->val);
-    cfgfnp->val = strbuf_finish(&buf);
+    cfgfnp->val = buf.s;
     memset(&buf, 0, sizeof buf);
-    printf("%s\n", cfgfnp->val);
-    switchCallbacks(&backCallbacks);
+    restoreCallbacks();
     return;
   case '"':
     strbuf_append1(&buf, key);
+    break;
+  case 8:
+    if(buf.len == 0)
+      return;
+    if(buf.s[buf.len - 2] == '"')
+      buf.s[--buf.len] = '\0';
+    buf.s[--buf.len] = '\0';
+    return;
   }
   strbuf_append1(&buf, key);
+  strbuf_terminate(&buf);
 }
 
 static void keyboardCon(unsigned char key, int x, int y)
 {
-  static struct strbuf buf;
-
   switch(key) {
   case 13:
     static char *game[4] = { "./opensoldat", "-join", };
 
     if(fork() == 0) {
-      game[2] = strbuf_finish(&buf);
+      game[2] = buf.s;
       game[3] = NULL;
       saveSettings();
       execvp(game[0], game);
       fprintf(stderr, "game not found");
       exit(1);
     }
-    free(buf.s);
+    strbuf_cleanup(&buf);
     memset(&buf, 0, sizeof buf);
     wait(NULL);
-    switchCallbacks(&backCallbacks);
+    restoreCallbacks();
     return;
   case 27:
-    switchCallbacks(&backCallbacks);
+    strbuf_cleanup(&buf);
+    memset(&buf, 0, sizeof buf);
+    restoreCallbacks();
+    return;
+  case 8:
+    if(buf.len == 0)
+      return;
+    buf.s[--buf.len] = '\0';
+    return;
   }
   strbuf_append1(&buf, key);
+  strbuf_terminate(&buf);
 }
 
 static void specialNull(int key, int x, int y)
@@ -1108,6 +1126,125 @@ static void keyboardNull(unsigned char key, int x, int y)
   ;
 }
 
+static void displayInput(void)
+{
+  float c1, c2, c3[4];
+
+  guiProjection(screen->vp_w, screen->vp_h);
+
+  glBegin(GL_QUADS);
+  c1 = 0.25; c2 = 0.25;
+  glColor3f(c1, c1, GUI_BLUE);
+  glVertex2f(-1, -1);
+  glColor3f(c2, c2, GUI_BLUE);
+  glVertex2f(1, -1);
+  glVertex2f(1, 1);
+  glColor3f(c1, c1, GUI_BLUE);
+  glVertex2f(-1, 1);
+  glEnd();
+
+  c3[0] = c3[1] = c3[2] = 0.0;
+  c3[3] = 1.0;
+  glColor4fv(c3);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  rasonly(screen);
+  if(buf.len == 0)
+    drawText(screen->vp_w / 2, screen->vp_h / 2, 32, "");
+  else
+    drawText(100, 100, 16, buf.s);
+  glutSwapBuffers();
+}
+
+static void idleInput(void)
+{
+  float c1, c2, c3[4];
+
+  guiProjection(screen->vp_w, screen->vp_h);
+
+  glBegin(GL_QUADS);
+  c1 = 0.25; c2 = 0.25;
+  glColor3f(c1, c1, GUI_BLUE);
+  glVertex2f(-1, -1);
+  glColor3f(c2, c2, GUI_BLUE);
+  glVertex2f(1, -1);
+  glVertex2f(1, 1);
+  glColor3f(c1, c1, GUI_BLUE);
+  glVertex2f(-1, 1);
+  glEnd();
+
+  c3[0] = c3[1] = c3[2] = 0.0;
+  c3[3] = 1.0;
+  glColor4fv(c3);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  rasonly(screen);
+  if(buf.len == 0)
+    drawText(screen->vp_w / 2, screen->vp_h / 2, 32, "");
+  else
+    drawText(100, 100, 16, buf.s);
+  glutSwapBuffers();
+}
+
+static float color[3];
+
+void specialColor(int key, int x, int y)
+{
+  switch(key) {
+  case GLUT_KEY_LEFT:
+    color[0] -= 0.1;
+    color[1] -= 0.1;
+    color[2] -= 0.1;
+    break;
+  case GLUT_KEY_RIGHT:
+    color[0] += 0.1;
+    color[1] += 0.1;
+    color[2] += 0.1;
+    break;
+  case GLUT_KEY_UP:
+    color[0] -= 0.1;
+    color[1] += 0.1;
+    color[2] -= 0.1;
+    break;
+  case GLUT_KEY_DOWN:
+    color[0] += 0.1;
+    color[1] -= 0.1;
+    color[2] += 0.1;
+  }
+}
+
+void displayColor(void)
+{
+  guiProjection(screen->vp_w, screen->vp_h);
+
+  glBegin(GL_QUADS);
+  glColor3f(color[0], color[1], color[2]);
+  glVertex2f(-1, -1);
+  glColor3f(color[0], color[1], color[2]);
+  glVertex2f(1, -1);
+  glVertex2f(1, 1);
+  glColor3f(color[0], color[1], color[2]);
+  glVertex2f(-1, 1);
+  glEnd();
+
+  glutSwapBuffers();
+}
+
+void idleColor(void)
+{
+  guiProjection(screen->vp_w, screen->vp_h);
+
+  glBegin(GL_QUADS);
+  glColor3f(color[0], color[1], color[2]);
+  glVertex2f(-1, -1);
+  glColor3f(color[0], color[1], color[2]);
+  glVertex2f(1, -1);
+  glVertex2f(1, 1);
+  glColor3f(color[0], color[1], color[2]);
+  glVertex2f(-1, 1);
+  glEnd();
+
+  glutSwapBuffers();
+}
+
 callbacks nullCallbacks = {
   displayNull, idleNull, keyboardNull, specialNull, initNull, initGLNull
 };
@@ -1117,7 +1254,7 @@ callbacks guiCallbacks = {
 };
 
 callbacks nameCallbacks = {
-  displayGui, idleGui, keyboardName, specialNull, initNull, initGLNull
+  displayInput, idleInput, keyboardName, specialNull, initNull, initGLNull
 };
 
 callbacks backCallbacks = {
@@ -1125,5 +1262,9 @@ callbacks backCallbacks = {
 };
 
 callbacks conCallbacks = {
-  displayGui, idleGui, keyboardCon, specialNull, initNull, initGLNull
+  displayInput, idleInput, keyboardCon, specialNull, initNull, initGLNull
+};
+
+callbacks colorCallbacks = {
+  displayColor, idleColor, keyboardNull, specialColor, initNull, initGLNull
 };
