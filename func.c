@@ -58,18 +58,22 @@ void changeSoundExplosions(struct configfn *cfg, Menu *m)
 
 void changeShirt(struct configfn *cfg, Menu *m)
 {
+  switchCallbacks(&colorCallbacks);
 }
 
 void changeJet(struct configfn *cfg, Menu *m)
 {
+  switchCallbacks(&colorCallbacks);
 }
 
 void changeHair(struct configfn *cfg, Menu *m)
 {
+  switchCallbacks(&colorCallbacks);
 }
 
 void changeSkin(struct configfn *cfg, Menu *m)
 {
+  switchCallbacks(&colorCallbacks);
 }
 
 void changeEnd(struct configfn *cfg, Menu *m)
@@ -236,7 +240,6 @@ void doShirt(struct configfn *cfg, Menu *m)
 
 void doJet(struct configfn *cfg, Menu *m)
 {
-  printf("ok\n");
   sprintf(m->display.szCaption, m->szCapFormat, cfg->val);
 }
 

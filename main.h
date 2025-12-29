@@ -1,5 +1,12 @@
 #define strbuf_init { NULL, 0, 0 }
 
+enum {
+  MENU_SONG,
+  MENU_ACTION,
+  MENU_HIGHLIGHT,
+  MENU_SIZE
+};
+
 typedef struct callbacks {
   void (*display)(void);
   void (*idle)(void);
@@ -108,6 +115,14 @@ struct configfn {
 	 *val;
 };
 
+struct sound {
+  ALenum attr;
+  ALuint src, buf;
+  char *file;
+};
+
+extern struct sound *snd;
+
 extern callbacks guiCallbacks;
 extern callbacks nameCallbacks;
 extern callbacks backCallbacks;
@@ -116,6 +131,8 @@ extern callbacks runCallbacks;
 extern callbacks nullCallbacks;
 extern callbacks colorCallbacks;
 
+extern void setupSettings(void);
+extern char *getFullPath(char *);
 extern void loadSettings(char *);
 extern void switchCallbacks(callbacks *new);
 extern void setupDisplay(gDisplay *d);
@@ -162,10 +179,10 @@ extern void doDithering(struct configfn *, Menu *);
 extern void doSoundVolume(struct configfn *, Menu *);
 extern void doSoundBattle(struct configfn *, Menu *);
 extern void doSoundExplosions(struct configfn *, Menu *);
-extern void loadSound(char *);
-extern void setAttribute(ALenum attr);
-extern void playSound(void);
-extern void setupSound(char *);
+extern void loadSound(struct sound *);
+extern void setAttribute(struct sound *);
+extern void playSound(struct sound *);
+extern void setupSound(struct sound *);
 extern void changeSoundVolume(struct configfn *, Menu *);
 extern void changeSoundBattle(struct configfn *, Menu *);
 extern void changeSoundExplosions(struct configfn *, Menu *);

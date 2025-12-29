@@ -21,12 +21,10 @@ static void getLine(char *buf, int size, FILE *f);
 static sgi_texture* load_sgi_texture(char *filename);
 static void unload_sgi_texture(sgi_texture *tex);
 static void ftxUnloadFont(fonttex *ftx);
-static char* getFullPath(char *filename);
 static void initFonts(void);
 static fonttex *ftxLoadFont(char *filename);
 static int getElapsedTime(void);
 static void rasonly(gDisplay *d);
-static void restoreCallbacks(void);
 static void ftxRenderString(fonttex *ftx, char *string, int len);
 static void drawText(int x, int y, int size, char *text);
 static void initMenuCaption(Menu *m);
@@ -50,13 +48,17 @@ static void idleNull(void);
 static void specialNull(int, int, int);
 static void displayNull(void);
 static void saveSettings(void);
+static unsigned int toByte(float);
+static void displayColor(void);
+static void idleColor(void);
+static void specialColor(int, int, int);
+static void keyboardColor(unsigned char, int, int);
+static void initColor(void);
 
 static Menu *pCurrent, **pMenuList;
 static fonttex *ftx;
 
-static callbacks *current_callback, *last_callback;
-
-static int lasttime, polycount;
+static int polycount;
 
 static gDisplay *screen;
 
@@ -424,7 +426,7 @@ static void ftxUnloadFont(fonttex *ftx) {
   free(ftx);
 }
 
-static char* getFullPath(char *filename) {
+char *getFullPath(char *filename) {
   char *path;
   FILE *fp = NULL;
   
@@ -468,6 +470,8 @@ static void initFonts(void) {
 
 void setupDisplay(gDisplay *d) {
   screen = d;
+  d->vp_w = 640;
+  d->vp_h = 480;
   printf("trying to create window\n");
   d->win_id = initWindow();
   printf("window created\n");
@@ -498,37 +502,15 @@ static void rasonly(gDisplay *d) {
 }
 
 void switchCallbacks(callbacks *new) {
-  last_callback = current_callback;
-  current_callback = new;
-
   glutIdleFunc(new->idle);
   glutDisplayFunc(new->display);
   glutKeyboardFunc(new->keyboard);
   glutSpecialFunc(new->special);
 
-  lasttime = getElapsedTime();
-
- /* printf("callbacks registred\n"); */
-  (new->init)();
-  (new->initGL)();
-  /* printf("callback init's completed\n"); */
-}
-
-static void restoreCallbacks(void) {
-  if(last_callback == 0) {
-    fprintf(stderr, "no last callback present, exiting\n");
-    exit(1);
-  }
-  current_callback = last_callback;
-
-  glutIdleFunc(current_callback->idle);
-  glutDisplayFunc(current_callback->display);
-  glutKeyboardFunc(current_callback->keyboard);
-  glutSpecialFunc(current_callback->special);
-  
-  lasttime = getElapsedTime();
-
-  fprintf(stderr, "restoring callbacks\n");
+  /* printf("callbacks registred\n"); */
+   (new->init)();
+   (new->initGL)();
+   /* printf("callback init's completed\n"); */
 }
 
 static void ftxRenderString(fonttex *ftx, char *string, int len) {
@@ -869,7 +851,6 @@ static void menuAction(Menu *activated)
   } else {
     cfgfnp = cfgfn;
     while(cfgfnp->doChange != changeEnd) {
-      printf("%s\n", cfgfnp->name);
       if(strstr(cfgfnp->name, activated->szName)) {
         cfgfnp->doChange(cfgfnp, activated);
 	cfgfnp->doCaption(cfgfnp, activated);
@@ -913,13 +894,6 @@ void loadSettings(char *file)
   cfg.prev = cfgp;
 }
 
-void setupSound(char *file)
-{
-  loadSound(getFullPath(file));
-  setAttribute(AL_LOOPING);
-  playSound();
-}
-
 void parseSettings(void)
 {
   char *entry;
@@ -951,6 +925,7 @@ static void keyboardGui(unsigned char key, int x, int y) {
       pCurrent = pCurrent->parent;
     break;
   case 13: case ' ':
+    playSound(&snd[MENU_ACTION]);
     menuAction(*(pCurrent->pEntries + pCurrent->iHighlight));
     break;
   case 'q': exit(0); break;
@@ -968,9 +943,11 @@ static void keyboardGui(unsigned char key, int x, int y) {
 static void  specialGui(int key, int x, int y) {
   switch(key) {
   case GLUT_KEY_DOWN:
+    playSound(&snd[MENU_HIGHLIGHT]);
     pCurrent->iHighlight = (pCurrent->iHighlight + 1) % pCurrent->nEntries;
     break;
   case GLUT_KEY_UP:
+    playSound(&snd[MENU_HIGHLIGHT]);
     pCurrent->iHighlight = (pCurrent->iHighlight - 1) % pCurrent->nEntries;
     if(pCurrent->iHighlight < 0)
       pCurrent->iHighlight = pCurrent->nEntries - 1;
@@ -1012,13 +989,13 @@ static void keyboardName(unsigned char key, int x, int y)
   case 27:
     strbuf_cleanup(&buf);
     memset(&buf, 0, sizeof buf);
-    restoreCallbacks();
+    switchCallbacks(&backCallbacks);
     return;
   case 13:
     free(cfgfnp->val);
     cfgfnp->val = buf.s;
     memset(&buf, 0, sizeof buf);
-    restoreCallbacks();
+    switchCallbacks(&backCallbacks);
     return;
   case '"':
     strbuf_append1(&buf, key);
@@ -1027,7 +1004,7 @@ static void keyboardName(unsigned char key, int x, int y)
     if(buf.len == 0)
       return;
     if(buf.s[buf.len - 2] == '"')
-      buf.s[--buf.len] = '\0';
+      buf.len--;
     buf.s[--buf.len] = '\0';
     return;
   }
@@ -1052,12 +1029,12 @@ static void keyboardCon(unsigned char key, int x, int y)
     strbuf_cleanup(&buf);
     memset(&buf, 0, sizeof buf);
     wait(NULL);
-    restoreCallbacks();
+    switchCallbacks(&backCallbacks);
     return;
   case 27:
     strbuf_cleanup(&buf);
     memset(&buf, 0, sizeof buf);
-    restoreCallbacks();
+    switchCallbacks(&backCallbacks);
     return;
   case 8:
     if(buf.len == 0)
@@ -1184,65 +1161,135 @@ static void idleInput(void)
   glutSwapBuffers();
 }
 
-static float color[3];
+static struct {
+  float r, g, b;
+} color;
 
-void specialColor(int key, int x, int y)
+static unsigned int toByte(float f)
+{
+  if (f < 0.0f) f = 0.0f;
+  else if (f > 1.0f) f = 1.0f;
+
+  return (unsigned int) (f * 255.0f + 0.5f);
+}
+
+static void keyboardColor(unsigned char key, int x, int y)
 {
   switch(key) {
-  case GLUT_KEY_LEFT:
-    color[0] -= 0.1;
-    color[1] -= 0.1;
-    color[2] -= 0.1;
-    break;
-  case GLUT_KEY_RIGHT:
-    color[0] += 0.1;
-    color[1] += 0.1;
-    color[2] += 0.1;
-    break;
-  case GLUT_KEY_UP:
-    color[0] -= 0.1;
-    color[1] += 0.1;
-    color[2] -= 0.1;
-    break;
-  case GLUT_KEY_DOWN:
-    color[0] += 0.1;
-    color[1] -= 0.1;
-    color[2] += 0.1;
+  case 27:
+    printf("%.6x\n",
+           ((toByte(color.r) << 16) |
+	    (toByte(color.g) << 8) |
+	    toByte(color.b)) & 0xFFFFFF);
+    switchCallbacks(&backCallbacks);
+    return;
+  case 13:
+    switchCallbacks(&backCallbacks);
   }
 }
 
-void displayColor(void)
+static void specialColor(int key, int x, int y)
+{
+  static float hue, speed = 1.0f;
+  static int dir;
+
+  switch(key) {
+  case GLUT_KEY_LEFT:
+    dir = -1;
+    break;
+  case GLUT_KEY_RIGHT:
+    dir = 1;
+    break;
+  case GLUT_KEY_UP:
+    color.r += 0.1f;
+    color.g += 0.1f;
+    color.b += 0.1f;
+    return;
+  case GLUT_KEY_DOWN:
+    color.r -= 0.1f;
+    color.g -= 0.1f;
+    color.b -= 0.1f;
+    return;
+  }
+
+  hue += speed * dir;
+  if (hue > 360.0f) hue = 0.0f;
+  else if (hue < 0.0f) hue = 360.0f;
+
+  // Simple RGB cycling logic (linear interpolation)
+  if(hue < 60) {
+    color.r = 1;
+    color.g = hue / 60;
+    color.b = 0;
+  } else if(hue < 120) {
+    color.r = 1 - (hue - 60) / 60;
+    color.g = 1;
+    color.b = 0;
+  } else if(hue < 180) {
+    color.r = 0;
+    color.g = 1;
+    color.b = (hue - 120) / 60;
+  } else if(hue < 240) {
+    color.r = 0;
+    color.g = 1 - (hue - 180) / 60;
+    color.b = 1;
+  } else if(hue < 300) {
+    color.r = (hue - 240) / 60;
+    color.g = 0;
+    color.b = 1;
+  } else {
+    color.r = 1;
+    color.g = 0;
+    color.b = 1 - (hue - 300) / 60;
+  }
+}
+
+static void displayColor(void)
 {
   guiProjection(screen->vp_w, screen->vp_h);
 
   glBegin(GL_QUADS);
-  glColor3f(color[0], color[1], color[2]);
+  glColor3f(color.r, color.g, color.b);
   glVertex2f(-1, -1);
-  glColor3f(color[0], color[1], color[2]);
+  glColor3f(color.r, color.g, color.b);
   glVertex2f(1, -1);
   glVertex2f(1, 1);
-  glColor3f(color[0], color[1], color[2]);
+  glColor3f(color.r, color.g, color.b);
   glVertex2f(-1, 1);
   glEnd();
 
   glutSwapBuffers();
 }
 
-void idleColor(void)
+static void idleColor(void)
 {
   guiProjection(screen->vp_w, screen->vp_h);
 
   glBegin(GL_QUADS);
-  glColor3f(color[0], color[1], color[2]);
+  glColor3f(color.r, color.g, color.b);
   glVertex2f(-1, -1);
-  glColor3f(color[0], color[1], color[2]);
+  glColor3f(color.r, color.g, color.b);
   glVertex2f(1, -1);
   glVertex2f(1, 1);
-  glColor3f(color[0], color[1], color[2]);
+  glColor3f(color.r, color.g, color.b);
   glVertex2f(-1, 1);
   glEnd();
 
   glutSwapBuffers();
+}
+
+static void initColor(void)
+{
+  color.r = color.g = color.b = 0.0f;
+}
+
+void setupSettings(void)
+{
+  printf("loading settings...\n");
+  loadSettings("configs/player.cfg");
+  loadSettings("configs/graphics.cfg");
+  loadSettings("configs/sound.cfg");
+  parseSettings();
 }
 
 callbacks nullCallbacks = {
@@ -1266,5 +1313,5 @@ callbacks conCallbacks = {
 };
 
 callbacks colorCallbacks = {
-  displayColor, idleColor, keyboardNull, specialColor, initNull, initGLNull
+  displayColor, idleColor, keyboardColor, specialColor, initColor, initGLNull
 };
