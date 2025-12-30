@@ -16,10 +16,6 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <AL/alut.h>
-#include <stdio.h>
-#include <stddef.h>
-
 #include "main.h"
 
 struct sound *snd;

@@ -20,20 +20,16 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <AL/alut.h>
-#include <GL/glut.h>
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
-#include <time.h>
-#include <unistd.h>
-#include <sys/wait.h>
-
 #include "main.h"
 
 #define MENU_BUFSIZE 100
 #define SEPERATOR "/"
-#define BUFSIZE 8192
+
+gDisplay *screen;
+background_states bgs;
+sgi_texture *tex;
+Menu *pCurrent, **pMenuList;
+fonttex *ftx;
 
 static int initWindow(void);
 static void loadTexture(char *filename, int format);
@@ -45,177 +41,9 @@ static void unload_sgi_texture(sgi_texture *tex);
 static void ftxUnloadFont(fonttex *ftx);
 static void initFonts(void);
 static fonttex *ftxLoadFont(char *filename);
-static int getElapsedTime(void);
-static void rasonly(gDisplay *d);
 static void ftxRenderString(fonttex *ftx, char *string, int len);
-static void drawText(int x, int y, int size, char *text);
 static void initMenuCaption(Menu *m);
 static Menu* loadMenu(FILE* f, char* buf, Menu* parent, int level);
-static Menu** loadMenuFile(char *filename);
-static void drawMenu(gDisplay *d);
-static void guiProjection(int x, int y);
-static void displayGui(void);
-static void idleGui(void);
-static void menuAction(Menu *activated);
-static void keyboardGui(unsigned char key, int x, int y);
-static void  specialGui(int key, int x, int y);
-static void initGui(void);
-static void initGLGui(void);
-static void keyboardCon(unsigned char, int, int);
-static void keyboardName(unsigned char, int, int);
-static void initNull(void);
-static void initGLNull(void);
-static void keyboardNull(unsigned char, int, int);
-static void idleNull(void);
-static void specialNull(int, int, int);
-static void displayNull(void);
-static void saveSettings(void);
-static unsigned int toByte(float);
-static void displayColor(void);
-static void idleColor(void);
-static void specialColor(int, int, int);
-static void keyboardColor(unsigned char, int, int);
-static void initColor(void);
-
-static Menu *pCurrent, **pMenuList;
-static fonttex *ftx;
-
-static int polycount;
-
-static gDisplay *screen;
-
-static struct config cfg = { &cfg, &cfg };
-static struct config *cfgp = &cfg;
-
-static struct configfn cfgfn[] = { { doName,
-				     changeName,
-				     "configs/player.cfg",
-				     "\"cl_player_name\"" },
-				   { doHair,
-				     changeHair,
-				     "configs/player.cfg",
-				     "\"cl_player_hair\"" },
-				   { doSkin,
-				     changeSkin,
-				     "configs/player.cfg",
-				     "\"cl_player_skin\"" },
-				   { doShirt,
-				     changeShirt,
-				     "configs/player.cfg",
-				     "\"cl_player_shirt\"" },
-				   { doPants,
-				     changePants,
-				     "configs/player.cfg",
-				     "\"cl_player_pants\"" },
-				   { doJet,
-				     changeJet,
-				     "configs/player.cfg",
-				     "\"cl_player_jet\"" },
-				   { doHairstyle,
-				     changeHairstyle,
-				     "configs/player.cfg",
-				     "\"cl_player_hairstyle\"" },
-				   { doHeadstyle,
-				     changeHeadstyle,
-				     "configs/player.cfg",
-				     "\"cl_player_headstyle\"" },
-				   { doChainstyle,
-				     changeChainstyle,
-				     "configs/player.cfg",
-				     "\"cl_player_chainstyle\"" },
-				   { doSecWeapon,
-				     changeSecWeapon,
-				     "configs/player.cfg",
-				     "\"cl_player_secwep\"" },
-				   { doFullscreen,
-				     changeFullscreen,
-				     "configs/graphics.cfg",
-				     "\"r_fullscreen\"" },
-				   { doRenderWidth,
-				     changeRenderWidth,
-				     "configs/graphics.cfg",
-				     "\"r_renderwidth\"" },
-				   { doRenderHeight,
-				     changeRenderHeight,
-				     "configs/graphics.cfg",
-				     "\"r_renderheight\"" },
-				   { doScreenWidth,
-				     changeScreenWidth,
-				     "configs/graphics.cfg",
-				     "\"r_screenwidth\"" },
-				   { doScreenHeight,
-				     changeScreenHeight,
-				     "configs/graphics.cfg",
-				     "\"r_screenheight\"" },
-				   { doFPSLimit,
-				     changeFPSLimit,
-				     "configs/graphics.cfg",
-				     "\"r_fpslimit\"" },
-				   { doMaxFPS,
-				     changeMaxFPS,
-				     "configs/graphics.cfg",
-				     "\"r_maxfps\"" },
-				   { doRenderBackground,
-				     changeRenderBackground,
-				     "configs/graphics.cfg",
-				     "\"r_renderbackground\"" },
-				   { doForceBackground,
-				     changeForceBackground,
-				     "configs/graphics.cfg",
-				     "\"r_forcebg\"" },
-				   { doBackgroundColorOne,
-				     changeBackgroundColorOne,
-				     "configs/graphics.cfg",
-				     "\"r_forcebg_color1\"" },
-				   { doBackgroundColorTwo,
-				     changeBackgroundColorTwo,
-				     "configs/graphics.cfg",
-				     "\"r_forcebg_color2\"" },
-				   { doWeatherEffects,
-				     changeWeatherEffects,
-				     "configs/graphics.cfg",
-				     "\"r_weathereffects\"" },
-				   { doSmoothEdges,
-				     changeSmoothEdges,
-				     "configs/graphics.cfg",
-				     "\"r_smoothedges\"" },
-				   { doScaleInterface,
-				     changeScaleInterface,
-				     "configs/graphics.cfg",
-				     "\"r_scaleinterface\"" },
-				   { doPlayerIndicator,
-				     changePlayerIndicator,
-				     "configs/graphics.cfg",
-				     "\"ui_playerindicator\"" },
-				   { doKillConsole,
-				     changeKillConsole,
-				     "configs/graphics.cfg",
-				     "\"ui_killconsole\"" },
-				   { doSwapEffect,
-				     changeSwapEffect,
-				     "configs/graphics.cfg",
-				     "\"r_swapeffect\"" },
-				   { doDithering,
-				     changeDithering,
-				     "configs/graphics.cfg",
-				     "\"r_dithering\"" },
-				   { doSoundVolume,
-				     changeSoundVolume,
-				     "configs/sound.cfg",
-				     "\"snd_volume\"" },
-				   { doSoundBattle,
-				     changeSoundBattle,
-				     "configs/sound.cfg",
-				     "\"snd_effects_battle\"" },
-				   { doSoundExplosions,
-				     changeSoundExplosions,
-				     "configs/sound.cfg",
-				     "\"snd_effects_explosions\"" },
-				   { doEnd,
-				     changeEnd,
-				     "",
-				     "" } };
-static struct configfn *cfgfnp = cfgfn;
 
 static int initWindow(void) {
   int win_id;
@@ -316,7 +144,7 @@ static void getLine(char *buf, int size, FILE *f) {
 
 static sgi_texture* load_sgi_texture(char *filename) {
   FILE *f;
-  unsigned char buf[BUFSIZE];
+  unsigned char buf[BUFSIZ];
   unsigned int x, y, bpc, zsize;
   long count, bytes;
   unsigned char *tmp;
@@ -504,16 +332,7 @@ void setupDisplay(gDisplay *d) {
   initTexture(d);
 }
 
-static int getElapsedTime(void)
-{
-#ifdef WIN32
-	return timeGetTime();
-#else
-	return glutGet(GLUT_ELAPSED_TIME);
-#endif
-}
-
-static void rasonly(gDisplay *d) {
+void rasonly(gDisplay *d) {
   /* do rasterising only (in local display d) */
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
@@ -521,18 +340,6 @@ static void rasonly(gDisplay *d) {
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
   glViewport(d->vp_x, d->vp_y, d->vp_w, d->vp_h);
-}
-
-void switchCallbacks(callbacks *new) {
-  glutIdleFunc(new->idle);
-  glutDisplayFunc(new->display);
-  glutKeyboardFunc(new->keyboard);
-  glutSpecialFunc(new->special);
-
-  /* printf("callbacks registred\n"); */
-   (new->init)();
-   (new->initGL)();
-   /* printf("callback init's completed\n"); */
 }
 
 static void ftxRenderString(fonttex *ftx, char *string, int len) {
@@ -583,7 +390,7 @@ w);
   /* checkGLError("fonttex.c ftxRenderString\n"); */
 }
 
-static void drawText(int x, int y, int size, char *text) {
+void drawText(int x, int y, size_t size, char *text) {
   /* int i; */
 
   glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
@@ -604,7 +411,141 @@ static void drawText(int x, int y, int size, char *text) {
     glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *(text + i));
   */
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  polycount += strlen(text);
+}
+
+static struct configfn cfgfn[] = { { doName,
+				     changeName,
+				     "configs/player.cfg",
+				     "\"cl_player_name\"" },
+				   { doHair,
+				     changeHair,
+				     "configs/player.cfg",
+				     "\"cl_player_hair\"" },
+				   { doSkin,
+				     changeSkin,
+				     "configs/player.cfg",
+				     "\"cl_player_skin\"" },
+				   { doShirt,
+				     changeShirt,
+				     "configs/player.cfg",
+				     "\"cl_player_shirt\"" },
+				   { doPants,
+				     changePants,
+				     "configs/player.cfg",
+				     "\"cl_player_pants\"" },
+				   { doJet,
+				     changeJet,
+				     "configs/player.cfg",
+				     "\"cl_player_jet\"" },
+				   { doHairstyle,
+				     changeHairstyle,
+				     "configs/player.cfg",
+				     "\"cl_player_hairstyle\"" },
+				   { doHeadstyle,
+				     changeHeadstyle,
+				     "configs/player.cfg",
+				     "\"cl_player_headstyle\"" },
+				   { doChainstyle,
+				     changeChainstyle,
+				     "configs/player.cfg",
+				     "\"cl_player_chainstyle\"" },
+				   { doSecWeapon,
+				     changeSecWeapon,
+				     "configs/player.cfg",
+				     "\"cl_player_secwep\"" },
+				   { doFullscreen,
+				     changeFullscreen,
+				     "configs/graphics.cfg",
+				     "\"r_fullscreen\"" },
+				   { doRenderWidth,
+				     changeRenderWidth,
+				     "configs/graphics.cfg",
+				     "\"r_renderwidth\"" },
+				   { doRenderHeight,
+				     changeRenderHeight,
+				     "configs/graphics.cfg",
+				     "\"r_renderheight\"" },
+				   { doScreenWidth,
+				     changeScreenWidth,
+				     "configs/graphics.cfg",
+				     "\"r_screenwidth\"" },
+				   { doScreenHeight,
+				     changeScreenHeight,
+				     "configs/graphics.cfg",
+				     "\"r_screenheight\"" },
+				   { doFPSLimit,
+				     changeFPSLimit,
+				     "configs/graphics.cfg",
+				     "\"r_fpslimit\"" },
+				   { doMaxFPS,
+				     changeMaxFPS,
+				     "configs/graphics.cfg",
+				     "\"r_maxfps\"" },
+				   { doRenderBackground,
+				     changeRenderBackground,
+				     "configs/graphics.cfg",
+				     "\"r_renderbackground\"" },
+				   { doForceBackground,
+				     changeForceBackground,
+				     "configs/graphics.cfg",
+				     "\"r_forcebg\"" },
+				   { doBackgroundColorOne,
+				     changeBackgroundColorOne,
+				     "configs/graphics.cfg",
+				     "\"r_forcebg_color1\"" },
+				   { doBackgroundColorTwo,
+				     changeBackgroundColorTwo,
+				     "configs/graphics.cfg",
+				     "\"r_forcebg_color2\"" },
+				   { doWeatherEffects,
+				     changeWeatherEffects,
+				     "configs/graphics.cfg",
+				     "\"r_weathereffects\"" },
+				   { doSmoothEdges,
+				     changeSmoothEdges,
+				     "configs/graphics.cfg",
+				     "\"r_smoothedges\"" },
+				   { doScaleInterface,
+				     changeScaleInterface,
+				     "configs/graphics.cfg",
+				     "\"r_scaleinterface\"" },
+				   { doPlayerIndicator,
+				     changePlayerIndicator,
+				     "configs/graphics.cfg",
+				     "\"ui_playerindicator\"" },
+				   { doKillConsole,
+				     changeKillConsole,
+				     "configs/graphics.cfg",
+				     "\"ui_killconsole\"" },
+				   { doSwapEffect,
+				     changeSwapEffect,
+				     "configs/graphics.cfg",
+				     "\"r_swapeffect\"" },
+				   { doDithering,
+				     changeDithering,
+				     "configs/graphics.cfg",
+				     "\"r_dithering\"" },
+				   { doSoundVolume,
+				     changeSoundVolume,
+				     "configs/sound.cfg",
+				     "\"snd_volume\"" },
+				   { doSoundBattle,
+				     changeSoundBattle,
+				     "configs/sound.cfg",
+				     "\"snd_effects_battle\"" },
+				   { doSoundExplosions,
+				     changeSoundExplosions,
+				     "configs/sound.cfg",
+				     "\"snd_effects_explosions\"" },
+				   { doEnd,
+				     changeEnd,
+				     "",
+				     "" } };
+struct configfn *cfgfnp = cfgfn;
+
+struct configfn *cfgFnPointer(void)
+{
+  return cfgfnp;
 }
 
 static void initMenuCaption(Menu *m) {
@@ -669,7 +610,7 @@ static Menu* loadMenu(FILE* f, char* buf, Menu* parent, int level) {
   return m;
 }
 
-static Menu** loadMenuFile(char *filename) {
+Menu** loadMenuFile(char *filename) {
   char buf[MENU_BUFSIZE];
   FILE* f;
   Menu* m;
@@ -750,10 +691,11 @@ static Menu** loadMenuFile(char *filename) {
   return list;
 }
 
-static void drawMenu(gDisplay *d) {
+void drawMenu(gDisplay *d) {
   /* draw Menu pCurrent */
   int i;
-  int x, y, size, lineheight;
+  int x, y, lineheight;
+  size_t size;
 
   rasonly(d);
 
@@ -775,11 +717,7 @@ static void drawMenu(gDisplay *d) {
   }
 }
 
-static sgi_texture *tex;
-
-static background_states bgs;
-
-static void guiProjection(int x, int y) {
+void guiProjection(int x, int y) {
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
   /*glOrtho(0, 0, x, y, -1, 1); */
@@ -788,84 +726,7 @@ static void guiProjection(int x, int y) {
   glViewport(0, 0, x, y);
 }
 
-#define GUI_BLUE 0.3
-static void displayGui(void) {
-  float x, y, w, h;
-  float y1, y2;
-  float a, b1, b2, c1, c2;
-  float alpha;
-
-#define N 20.0
-  glClearColor(0.0, 0.0, 1.0, 0.0);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-  guiProjection(screen->vp_w, screen->vp_h);
-
-  glBegin(GL_QUADS);
-  c1 = 0.25; c2 = 0.25;
-  glColor3f(c1, c1, GUI_BLUE);
-  glVertex2f(-1, -1);
-  glColor3f(c2, c2, GUI_BLUE);
-  glVertex2f(1, -1);
-  glVertex2f(1, 1);
-  glColor3f(c1, c1, GUI_BLUE);
-  glVertex2f(-1, 1);
-  glEnd();
-
-  x = bgs.posx;
-  y = bgs.posy;
-  w = 0.40;
-  h = 0.50;
-
-  glEnable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, screen->texGui);
-  glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-
-  alpha = (sin(bgs.d - M_PI / 2) + 1) / 2;
-  glColor4f(1.0, 1.0, 0.0, alpha);
-  glBegin(GL_QUADS);
-  glTexCoord2f(0.0, 0.0);
-  glVertex2f(x, y);
-  glTexCoord2f(1.0, 0.0);
-  glVertex2f(x + w, y);
-  glTexCoord2f(1.0, 1.0);
-  glVertex2f(x + w, y + h);
-  glTexCoord2f(0.0, 1.0);
-  glVertex2f(x, y + h);
-  glEnd();
-  glDisable(GL_TEXTURE_2D);
-
-  glColor3f(1.0, 0.0, 1.0);
-  drawMenu(screen);
-
-  glutSwapBuffers();
-}
-
-static void idleGui(void) {
-  float delta;
-  long now;
-
-#ifdef SOUND
-  soundIdle();
-#endif
-
-  now = getElapsedTime();
-  delta = now - bgs.lt;
-  bgs.lt = now;
-  delta /= 1000.0;
-  bgs.d += delta;
-  /* printf("%.5f\n", delta); */
-  
-  if(bgs.d > 2 * M_PI) { 
-    bgs.d -= 2 * M_PI;
-    bgs.posx = 1.0 * (float)rand() / (float)RAND_MAX - 1;
-    bgs.posy = 1.5 * (float)rand() / (float)RAND_MAX - 1;
-  }
-
-  glutPostRedisplay();
-}
-
-static void menuAction(Menu *activated)
+void menuAction(Menu *activated)
 {
   if(activated->nEntries > 0) {
     pCurrent = activated;
@@ -888,6 +749,14 @@ static void menuAction(Menu *activated)
   case 'c':
     switchCallbacks(&conCallbacks);
   }
+}
+
+static struct config cfg = { &cfg, &cfg };
+static struct config *cfgp = &cfg;
+
+struct config *cfgPointer(void)
+{
+  return cfgp;
 }
 
 void loadSettings(char *file)
@@ -939,155 +808,10 @@ void parseSettings(void)
   }
 }
 
-static void keyboardGui(unsigned char key, int x, int y) {
-  int i;
-  switch(key) {
-  case 27:
-    if(pCurrent->parent != NULL)
-      pCurrent = pCurrent->parent;
-    break;
-  case 13: case ' ':
-    playSound(&snd[MENU_ACTION]);
-    menuAction(*(pCurrent->pEntries + pCurrent->iHighlight));
-    break;
-  case 'q': exit(0); break;
-  case 'l':
-    printf("%d entries:\n", pCurrent->nEntries);
-    for(i = 0; i < pCurrent->nEntries; i++)
-      printf("printing '%s' - %d entries\n",
-	     ((Menu*)*(pCurrent->pEntries + i))->szName,
-	     ((Menu*)*(pCurrent->pEntries + i))->nEntries);
-    break;
-  default: printf("got key %d\n", key);
-  }
-}
-
-static void  specialGui(int key, int x, int y) {
-  switch(key) {
-  case GLUT_KEY_DOWN:
-    playSound(&snd[MENU_HIGHLIGHT]);
-    pCurrent->iHighlight = (pCurrent->iHighlight + 1) % pCurrent->nEntries;
-    break;
-  case GLUT_KEY_UP:
-    playSound(&snd[MENU_HIGHLIGHT]);
-    pCurrent->iHighlight = (pCurrent->iHighlight - 1) % pCurrent->nEntries;
-    if(pCurrent->iHighlight < 0)
-      pCurrent->iHighlight = pCurrent->nEntries - 1;
-    break;
-  }
-}
-
-static void initGui(void) {
-  /* init states */
-  bgs.d = 0;
-  bgs.posx = -1;
-  bgs.posy = -1;
-  bgs.lt = getElapsedTime();
-
-  pMenuList = loadMenuFile(getFullPath("menu.txt"));
-  pCurrent = *pMenuList; /* erstes Menu ist RootMenu - Default pCurrent */
-  pCurrent->iHighlight = 0;
-
-  /* rasonly(screen); */
-  srand(time(NULL));
-}
-
-static void initGLGui(void) {
-  glShadeModel(GL_SMOOTH);
-
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-  glDisable(GL_LIGHTING);
-  glDisable(GL_DEPTH_TEST);
-
-}
-
-static struct strbuf buf;
-
-static void keyboardName(unsigned char key, int x, int y)
+void saveSettings(void)
 {
-  switch(key) {
-  case 27:
-    strbuf_cleanup(&buf);
-    memset(&buf, 0, sizeof buf);
-    switchCallbacks(&backCallbacks);
-    return;
-  case 13:
-    free(cfgfnp->val);
-    cfgfnp->val = buf.s;
-    memset(&buf, 0, sizeof buf);
-    switchCallbacks(&backCallbacks);
-    return;
-  case '"':
-    strbuf_append1(&buf, key);
-    break;
-  case 8:
-    if(buf.len == 0)
-      return;
-    if(buf.s[buf.len - 2] == '"')
-      buf.len--;
-    buf.s[--buf.len] = '\0';
-    return;
-  }
-  strbuf_append1(&buf, key);
-  strbuf_terminate(&buf);
-}
-
-static void keyboardCon(unsigned char key, int x, int y)
-{
-  switch(key) {
-  case 13:
-    static char *game[4] = { "./opensoldat", "-join", };
-
-    if(fork() == 0) {
-      game[2] = buf.s;
-      game[3] = NULL;
-      saveSettings();
-      execvp(game[0], game);
-      fprintf(stderr, "game not found");
-      exit(1);
-    }
-    strbuf_cleanup(&buf);
-    memset(&buf, 0, sizeof buf);
-    wait(NULL);
-    switchCallbacks(&backCallbacks);
-    return;
-  case 27:
-    strbuf_cleanup(&buf);
-    memset(&buf, 0, sizeof buf);
-    switchCallbacks(&backCallbacks);
-    return;
-  case 8:
-    if(buf.len == 0)
-      return;
-    buf.s[--buf.len] = '\0';
-    return;
-  }
-  strbuf_append1(&buf, key);
-  strbuf_terminate(&buf);
-}
-
-static void specialNull(int key, int x, int y)
-{
-  ;
-}
-
-static void initNull(void)
-{
-  ;
-}
-
-static void initGLNull(void)
-{
-  ;
-}
-
-static void saveSettings(void)
-{
-  struct strbuf entry = strbuf_init;
-
   for(cfgp = &cfg; cfgp->entry != NULL; cfgp = cfgp->next) {
+    struct strbuf entry = strbuf_init;
     char *data;
     FILE *f;
 
@@ -1110,201 +834,6 @@ static void saveSettings(void)
   }
 }
 
-static void idleNull(void)
-{
-  ;
-}
-
-static void displayNull(void)
-{
-  ;
-}
-
-static void keyboardNull(unsigned char key, int x, int y)
-{
-  ;
-}
-
-static void displayInput(void)
-{
-  float c1, c2, c3[4];
-
-  guiProjection(screen->vp_w, screen->vp_h);
-
-  glBegin(GL_QUADS);
-  c1 = 0.25; c2 = 0.25;
-  glColor3f(c1, c1, GUI_BLUE);
-  glVertex2f(-1, -1);
-  glColor3f(c2, c2, GUI_BLUE);
-  glVertex2f(1, -1);
-  glVertex2f(1, 1);
-  glColor3f(c1, c1, GUI_BLUE);
-  glVertex2f(-1, 1);
-  glEnd();
-
-  c3[0] = c3[1] = c3[2] = 0.0;
-  c3[3] = 1.0;
-  glColor4fv(c3);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  rasonly(screen);
-  if(buf.len == 0)
-    drawText(screen->vp_w / 2, screen->vp_h / 2, 32, "");
-  else
-    drawText(100, 100, 16, buf.s);
-  glutSwapBuffers();
-}
-
-static void idleInput(void)
-{
-  float c1, c2, c3[4];
-
-  guiProjection(screen->vp_w, screen->vp_h);
-
-  glBegin(GL_QUADS);
-  c1 = 0.25; c2 = 0.25;
-  glColor3f(c1, c1, GUI_BLUE);
-  glVertex2f(-1, -1);
-  glColor3f(c2, c2, GUI_BLUE);
-  glVertex2f(1, -1);
-  glVertex2f(1, 1);
-  glColor3f(c1, c1, GUI_BLUE);
-  glVertex2f(-1, 1);
-  glEnd();
-
-  c3[0] = c3[1] = c3[2] = 0.0;
-  c3[3] = 1.0;
-  glColor4fv(c3);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  rasonly(screen);
-  if(buf.len == 0)
-    drawText(screen->vp_w / 2, screen->vp_h / 2, 32, "");
-  else
-    drawText(100, 100, 16, buf.s);
-  glutSwapBuffers();
-}
-
-static struct {
-  float r, g, b;
-} color;
-
-static unsigned int toByte(float f)
-{
-  if (f < 0.0f) f = 0.0f;
-  else if (f > 1.0f) f = 1.0f;
-
-  return (unsigned int) (f * 255.0f + 0.5f);
-}
-
-static void keyboardColor(unsigned char key, int x, int y)
-{
-  switch(key) {
-  case 27:
-    printf("%.6x\n",
-           ((toByte(color.r) << 16) |
-	    (toByte(color.g) << 8) |
-	    toByte(color.b)) & 0xFFFFFF);
-    switchCallbacks(&backCallbacks);
-    return;
-  case 13:
-    switchCallbacks(&backCallbacks);
-  }
-}
-
-static void specialColor(int key, int x, int y)
-{
-  static float hue, speed = 1.0f;
-  static int dir;
-
-  switch(key) {
-  case GLUT_KEY_LEFT:
-    dir = -1;
-    break;
-  case GLUT_KEY_RIGHT:
-    dir = 1;
-    break;
-  case GLUT_KEY_UP:
-    color.r += 0.1f;
-    color.g += 0.1f;
-    color.b += 0.1f;
-    return;
-  case GLUT_KEY_DOWN:
-    color.r -= 0.1f;
-    color.g -= 0.1f;
-    color.b -= 0.1f;
-    return;
-  }
-
-  hue += speed * dir;
-  if (hue > 360.0f) hue = 0.0f;
-  else if (hue < 0.0f) hue = 360.0f;
-
-  // Simple RGB cycling logic (linear interpolation)
-  if(hue < 60) {
-    color.r = 1;
-    color.g = hue / 60;
-    color.b = 0;
-  } else if(hue < 120) {
-    color.r = 1 - (hue - 60) / 60;
-    color.g = 1;
-    color.b = 0;
-  } else if(hue < 180) {
-    color.r = 0;
-    color.g = 1;
-    color.b = (hue - 120) / 60;
-  } else if(hue < 240) {
-    color.r = 0;
-    color.g = 1 - (hue - 180) / 60;
-    color.b = 1;
-  } else if(hue < 300) {
-    color.r = (hue - 240) / 60;
-    color.g = 0;
-    color.b = 1;
-  } else {
-    color.r = 1;
-    color.g = 0;
-    color.b = 1 - (hue - 300) / 60;
-  }
-}
-
-static void displayColor(void)
-{
-  guiProjection(screen->vp_w, screen->vp_h);
-
-  glBegin(GL_QUADS);
-  glColor3f(color.r, color.g, color.b);
-  glVertex2f(-1, -1);
-  glColor3f(color.r, color.g, color.b);
-  glVertex2f(1, -1);
-  glVertex2f(1, 1);
-  glColor3f(color.r, color.g, color.b);
-  glVertex2f(-1, 1);
-  glEnd();
-
-  glutSwapBuffers();
-}
-
-static void idleColor(void)
-{
-  guiProjection(screen->vp_w, screen->vp_h);
-
-  glBegin(GL_QUADS);
-  glColor3f(color.r, color.g, color.b);
-  glVertex2f(-1, -1);
-  glColor3f(color.r, color.g, color.b);
-  glVertex2f(1, -1);
-  glVertex2f(1, 1);
-  glColor3f(color.r, color.g, color.b);
-  glVertex2f(-1, 1);
-  glEnd();
-
-  glutSwapBuffers();
-}
-
-static void initColor(void)
-{
-  color.r = color.g = color.b = 0.0f;
-}
-
 void setupSettings(void)
 {
   printf("loading settings...\n");
@@ -1313,27 +842,3 @@ void setupSettings(void)
   loadSettings("configs/sound.cfg");
   parseSettings();
 }
-
-callbacks nullCallbacks = {
-  displayNull, idleNull, keyboardNull, specialNull, initNull, initGLNull
-};
-
-callbacks guiCallbacks = {
-  displayGui, idleGui, keyboardGui, specialGui, initGui, initGLGui
-};
-
-callbacks nameCallbacks = {
-  displayInput, idleInput, keyboardName, specialNull, initNull, initGLNull
-};
-
-callbacks backCallbacks = {
-  displayGui, idleGui, keyboardGui, specialGui, initNull, initGLNull
-};
-
-callbacks conCallbacks = {
-  displayInput, idleInput, keyboardCon, specialNull, initNull, initGLNull
-};
-
-callbacks colorCallbacks = {
-  displayColor, idleColor, keyboardColor, specialColor, initColor, initGLNull
-};

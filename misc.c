@@ -45,12 +45,6 @@
  * SUCH DAMAGE.
  */
 
-#include <AL/alut.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-
 #include "main.h"
 
 static char strnull[] = "";
@@ -75,7 +69,7 @@ char *quotetok(char *buf)
         if(buf[0] == '"') {
           if(buf[1] == '"') {
             strbuf_appendn(&ret, buf, (size_t) 2);
-	    buf += 2;
+	    buf = &buf[2];
 	    continue;
 	  }
 	  break;
@@ -87,6 +81,23 @@ char *quotetok(char *buf)
   if(ret.len == 0)
     return strnull;
   return strbuf_finish(&ret);
+}
+
+unsigned int toByte(float f)
+{
+  if (f < 0.0f) f = 0.0f;
+  else if (f > 1.0f) f = 1.0f;
+
+  return (unsigned int) (f * 255.0f + 0.5f);
+}
+
+int getElapsedTime(void)
+{
+#ifdef WIN32
+	return timeGetTime();
+#else
+	return glutGet(GLUT_ELAPSED_TIME);
+#endif
 }
 
 #define DO_STRBUF(STRBUF, CHAR, STRLEN)				\

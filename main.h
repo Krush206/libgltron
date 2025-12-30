@@ -49,6 +49,17 @@
  * SUCH DAMAGE.
  */
 
+#include <GL/glut.h>
+#include <AL/alut.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <assert.h>
+#include <math.h>
+#include <time.h>
+#include <sys/wait.h>
+
 #define strbuf_init { NULL, 0, 0 }
 
 enum {
@@ -136,16 +147,6 @@ float posy;
 long lt; 
 } background_states;
 
-typedef struct settings_int {
-  char name[32];
-  int *value;
-} settings_int;
-
-typedef struct settings_float {
-  char name[32];
-  float *value;
-} settings_float;
-
 struct strbuf {
     char *s;
     size_t len;                 /* Valid characters */
@@ -182,6 +183,25 @@ extern callbacks runCallbacks;
 extern callbacks nullCallbacks;
 extern callbacks colorCallbacks;
 
+extern gDisplay *screen;
+
+extern sgi_texture *tex;
+
+extern background_states bgs;
+
+extern Menu *pCurrent, **pMenuList;
+
+extern struct config *cfgPointer(void);
+extern struct configfn *cfgFnPointer(void);
+extern void menuAction(Menu *);
+extern Menu** loadMenuFile(char *);
+extern void rasonly(gDisplay *);
+extern void drawText(int, int, size_t, char *);
+extern void drawMenu(gDisplay *);
+extern void saveSettings(void);
+extern void guiProjection(int, int);
+extern int getElapsedTime(void);
+extern unsigned int toByte(float);
 extern void setupSettings(void);
 extern char *getFullPath(char *);
 extern void loadSettings(char *);
