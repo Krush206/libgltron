@@ -3,6 +3,10 @@
  *
  * This file contains code derived from the tcsh project.
  *
+ * This file is derived from GLtron 0.53 by Andreas Umbach.
+ * The original author explicitly permitted unrestricted use
+ * of the code and expressed intent to place it in the public domain.
+ *
  * Copyright (C) 2025 Matheus Garcia
  * 
  * Permission to use, copy, modify, and/or distribute this software
