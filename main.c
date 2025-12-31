@@ -767,14 +767,14 @@ void loadSettings(char *file)
 
   path = getFullPath(file);
   f = fopen(path, "r");
-  do {
-    fread(&c, (size_t) 1, (size_t) 1, f);
+  for(c = getc(f); !feof(f); c = getc(f)) {
     if(ferror(f)) {
       fprintf(stderr, "error loading config");
       exit(1);
     }
     strbuf_append1(&entry, c);
-  } while(!feof(f));
+  }
+  strbuf_terminate(&entry);
   cfgp->path = path;
   cfgp->entry = strbuf_finish(&entry);
   cfgp->next = malloc(sizeof cfg);
@@ -815,22 +815,20 @@ void saveSettings(void)
     char *data;
     FILE *f;
 
-    for(cfgfnp = cfgfn; strlen(cfgfnp->name); cfgfnp++) {
+    for(cfgfnp = cfgfn; strlen(cfgfnp->name); cfgfnp++)
       if(strstr(cfgp->entry, cfgfnp->name) != NULL) {
         strbuf_append(&entry, cfgfnp->name);
 	strbuf_append(&entry, " \"");
 	strbuf_append(&entry, cfgfnp->val);
 	strbuf_append(&entry, "\"\n");
-	strbuf_terminate(&entry);
       }
-    }
+    strbuf_terminate(&entry);
     f = fopen(cfgp->path, "w");
     data = entry.s;
     while(*data != '\0')
-      fwrite(data++, (size_t) 1, (size_t) 1, f);
+      putc(*data++, f);
     fclose(f);
     strbuf_cleanup(&entry);
-    memset(&entry, 0, sizeof entry);
   }
 }
 
